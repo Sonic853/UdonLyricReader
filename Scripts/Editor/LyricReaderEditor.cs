@@ -1,0 +1,472 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+using UdonLab.QuickUIElement;
+using UdonLab.EditorUI;
+using System;
+
+namespace UdonLab
+{
+    [CustomEditor(typeof(LyricReader))]
+    public class LyricReaderEditor : Editor
+    {
+        public override VisualElement CreateInspectorGUI()
+        {
+            var root = new VisualElement();
+            root.AddToClassList("CustomEditor");
+            UIElementMethod.InsertStyleSheet(ref root);
+            root.Bind(serializedObject);
+            var container = new IMGUIContainer(() =>
+            {
+                UdonSharpEditor.UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target, true, false);
+            })
+            {
+                name = "UdonSharpGUI"
+            };
+            root.Add(container);
+            var lyricReader = (LyricReader)target;
+            List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles", true);
+            List<AudioClip> audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips", true);
+            var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets", true);
+            var offsets = new List<float>();
+            foreach (var offset_obj in offsets_obj)
+            {
+                offsets.Add((float)offset_obj);
+            }
+            if (lrcFiles.Count > audioClips.Count)
+            {
+                for (int i = audioClips.Count; i < lrcFiles.Count; i++)
+                {
+                    audioClips.Add(null);
+                }
+            }
+            else if (lrcFiles.Count < audioClips.Count)
+            {
+                for (int i = lrcFiles.Count; i < audioClips.Count; i++)
+                {
+                    lrcFiles.Add(null);
+                }
+            }
+            if (lrcFiles.Count > offsets.Count)
+            {
+                for (int i = offsets.Count; i < lrcFiles.Count; i++)
+                {
+                    offsets.Add(0);
+                }
+            }
+            else if (lrcFiles.Count < offsets.Count)
+            {
+                for (int i = lrcFiles.Count; i < offsets.Count; i++)
+                {
+                    offsets.RemoveAt(i);
+                }
+            }
+            var musicListFoldout = new Foldout()
+            {
+                text = $"Music List ({lrcFiles.Count})",
+                value = true,
+            };
+            root.Add(musicListFoldout);
+            var musicListView = new ListView()
+            {
+                name = "musicList",
+                makeItem = () => new VisualElement(),
+                itemHeight = 80,
+                itemsSource = lrcFiles,
+                selectionType = SelectionType.None,
+            };
+            musicListView.bindItem = (element, index) =>
+            {
+                var ve = (VisualElement)element;
+                ve.Clear();
+                var audioClipField = new ObjectField()
+                {
+                    name = "audioClip",
+                    objectType = typeof(AudioClip),
+                    value = audioClips[index],
+                    label = "Audio Clip",
+                };
+                audioClipField.RegisterValueChangedCallback((e) =>
+                {
+                    audioClips[index] = (AudioClip)e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                });
+                ve.Add(audioClipField);
+                var lrcFileField = new ObjectField()
+                {
+                    name = "lrcFile",
+                    objectType = typeof(TextAsset),
+                    value = lrcFiles[index],
+                    label = "LRC File",
+                };
+                lrcFileField.RegisterValueChangedCallback((e) =>
+                {
+                    lrcFiles[index] = (TextAsset)e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    ReadAllLrcFile(serializedObject);
+                });
+                ve.Add(lrcFileField);
+                var offsetField = new FloatField()
+                {
+                    name = "offset",
+                    value = offsets[index],
+                    label = "Offset",
+                };
+                offsetField.RegisterValueChangedCallback((e) =>
+                {
+                    // Debug.Log($"offset: {e.newValue}");
+                    offsets[index] = e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                });
+                ve.Add(offsetField);
+                var _ve = new VisualElement();
+                _ve.style.flexDirection = FlexDirection.Row;
+                var upButton = new Button(() =>
+                {
+                    if (index == 0) return;
+                    var _lrcFile = lrcFiles[index];
+                    var _audioClip = audioClips[index];
+                    var _offset = offsets[index];
+                    lrcFiles[index] = lrcFiles[index - 1];
+                    audioClips[index] = audioClips[index - 1];
+                    offsets[index] = offsets[index - 1];
+                    lrcFiles[index - 1] = _lrcFile;
+                    audioClips[index - 1] = _audioClip;
+                    offsets[index - 1] = _offset;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    ReadAllLrcFile(serializedObject);
+                    musicListView.Refresh();
+                })
+                {
+                    text = "↑",
+                };
+                upButton.style.flexGrow = 1;
+                _ve.Add(upButton);
+                var downButton = new Button(() =>
+                {
+                    if (index == lrcFiles.Count - 1) return;
+                    var _lrcFile = lrcFiles[index];
+                    var _audioClip = audioClips[index];
+                    var _offset = offsets[index];
+                    lrcFiles[index] = lrcFiles[index + 1];
+                    audioClips[index] = audioClips[index + 1];
+                    offsets[index] = offsets[index + 1];
+                    lrcFiles[index + 1] = _lrcFile;
+                    audioClips[index + 1] = _audioClip;
+                    offsets[index + 1] = _offset;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    ReadAllLrcFile(serializedObject);
+                    musicListView.Refresh();
+                })
+                {
+                    text = "↓",
+                };
+                downButton.style.flexGrow = 1;
+                _ve.Add(downButton);
+                var removeButton = new Button(() =>
+                {
+                    audioClips.RemoveAt(index);
+                    lrcFiles.RemoveAt(index);
+                    offsets.RemoveAt(index);
+                    musicListFoldout.text = $"Music List ({lrcFiles.Count})";
+                    musicListView.style.height = lrcFiles.Count * 80;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    ReadAllLrcFile(serializedObject);
+                    musicListView.Refresh();
+                })
+                {
+                    text = "Remove",
+                };
+                removeButton.style.flexGrow = 1;
+                _ve.Add(removeButton);
+                ve.Add(_ve);
+            };
+            musicListView.style.height = lrcFiles.Count * 80;
+            musicListFoldout.Add(musicListView);
+            var addMusicButton = new Button(() =>
+            {
+                audioClips.Add(null);
+                lrcFiles.Add(null);
+                offsets.Add(0f);
+                musicListFoldout.text = $"Music List ({lrcFiles.Count})";
+                musicListView.style.height = lrcFiles.Count * 80;
+                SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                musicListView.Refresh();
+            })
+            {
+                text = "Add Music",
+            };
+            root.Add(addMusicButton);
+            return root;
+        }
+        static void ReadAllLrcFile(SerializedObject serializedObject)
+        {
+            var lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles");
+            // var audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips");
+            var lrcTexts = new List<string[]>();
+            var lrcTimes = new List<float[]>();
+            var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets");
+            var offsets = new List<float>();
+            foreach (var offset_obj in offsets_obj)
+            {
+                offsets.Add((float)offset_obj);
+            }
+            for (int i = 0; i < lrcFiles.Count; i++)
+            {
+                ReadLrcFile(lrcFiles[i], out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
+                lrcTexts.Add(_lrcText.ToArray());
+                lrcTimes.Add(_lrcTime.ToArray());
+                offsets[i] = _hasLyric ? _offset : offsets[i];
+            }
+            SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTexts", lrcTexts);
+            SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTimes", lrcTimes);
+            SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+        }
+        static void ReadLrcFile(TextAsset _lrcFile, out List<string> _lrcText, out List<float> _lrcTime, out float _offset, out string[] _lyricInfo, out bool _hasLyric)
+        {
+            _hasLyric = false;
+            _lrcText = new List<string>();
+            _lrcTime = new List<float>();
+            _offset = 0f;
+            _lyricInfo = new string[] {
+                // 歌曲：
+                "",
+                // 歌手：
+                "",
+                // 专辑：
+                "",
+                // 作词：
+                "",
+                // 歌词：
+                "",
+                // 时长：
+                "",
+            };
+            if (_lrcFile == null)
+            {
+                return;
+            }
+            _hasLyric = true;
+            string[] lines = _lrcFile.text.Split('\n');
+            if (_lrcFile.text.Contains("\r\n"))
+            {
+                lines = _lrcFile.text.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+            }
+            var times = new List<float>();
+            string lyric = "";
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+
+                // [by:LRC 文件的创建者]
+                // [offset:+/- 以毫秒为单位的整体时间戳调整，+ 时间上移，- 下移]
+                // [re:创建 LRC 文件的播放器或编辑器]
+                // [ve:程序版本]
+
+                if (line.StartsWith("["))
+                {
+                    for (int j = 0; j < times.Count; j++)
+                    {
+                        int _index = _lrcTime.FindIndex((x) => x > times[j]);
+                        if (_index == -1)
+                        {
+                            _lrcTime.Add(times[j]);
+                            _lrcText.Add(lyric);
+                        }
+                        else
+                        {
+                            _lrcTime.Insert(_index, times[j]);
+                            _lrcText.Insert(_index, lyric);
+                        }
+                    }
+                    if (line.Length > 1 && char.IsDigit(line[1]))
+                    {
+                        // 分离时间和歌词
+                        // [00:00.00]歌词
+                        // [00:00]歌词
+                        // [00:00:00]歌词
+                        // [00:00.00][00:00.00]歌词
+                        // 一行歌词可能有多个时间
+                        string[] timeAndLyric = line.Split(']');
+                        // [00:00.00 歌词
+                        // [00:00 歌词
+                        // [00:00:00 歌词
+                        // [00:00.00 [00:00.00 歌词
+                        times.Clear();
+                        lyric = "";
+                        for (int j = 0; j < timeAndLyric.Length; j++)
+                        {
+                            if (timeAndLyric[j].Trim().StartsWith("["))
+                            // [00:00.00
+                            // [00:00
+                            // [00:00:00
+                            // [00:00.0 [00:00.00
+                            {
+                                float time = stringTimeToFloat(timeAndLyric[j].Trim().Substring(1));
+                                if (time != -1)
+                                {
+                                    int _index = times.FindIndex((x) => x > time);
+                                    if (_index == -1)
+                                    {
+                                        times.Add(time);
+                                    }
+                                    else
+                                    {
+                                        times.Insert(_index, time);
+                                    }
+                                }
+                            }
+                            else
+                            // 歌词
+                            {
+                                lyric += timeAndLyric[j].Trim();
+                            }
+                            if (times.Count == 1 && timeAndLyric.Length == 1)
+                            {
+                                lyric = "";
+                            }
+                        }
+                    }
+                    else switch (true)
+                        {
+                            // [ar:歌手名]
+                            case true when line.StartsWith("[ar:"):
+                                {
+                                    _lyricInfo[1] = "歌手：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                }
+                                break;
+                            // [al:专辑]
+                            case true when line.StartsWith("[al:"):
+                                {
+                                    _lyricInfo[2] = "专辑：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                }
+                                break;
+                            // [ti:歌词（歌曲）标题]
+                            case true when line.StartsWith("[ti:"):
+                                {
+                                    _lyricInfo[0] = "歌曲：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                }
+                                break;
+                            // [au:作词]
+                            case true when line.StartsWith("[au:"):
+                                {
+                                    _lyricInfo[3] = "作词：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                }
+                                break;
+                            // [by:LRC 文件的创建者]
+                            case true when line.StartsWith("[by:"):
+                                {
+                                    _lyricInfo[4] = "歌词：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                }
+                                break;
+                            // [length:这首歌有多长]
+                            case true when line.StartsWith("[length:"):
+                                {
+                                    _lyricInfo[5] = "时长：" + line.Substring(8, line.LastIndexOf(']') - 8);
+                                }
+                                break;
+                            case true when line.StartsWith("[offset:"):
+                                {
+                                    // +/- 以毫秒为单位的整体时间戳调整，+ 时间上移，- 下移
+                                    string offsetStr = line.Substring(8, line.LastIndexOf(']') - 8);
+                                    // [offset:+0]
+                                    if (offsetStr.StartsWith("+"))
+                                    {
+                                        // 解析不报错
+                                        if (float.TryParse(offsetStr.Substring(1), out float offset))
+                                        {
+                                            _offset = offset / 1000f;
+                                        }
+                                    }
+                                    // [offset:0]
+                                    // [offset:-0]
+                                    else
+                                    {
+                                        // 解析不报错
+                                        if (float.TryParse(offsetStr, out float offset))
+                                        {
+                                            _offset = offset / 1000f;
+                                        }
+                                    }
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+                }
+                else
+                {
+                    // 换行歌词
+                    if (times.Count > 0 && lines[i] != "")
+                    {
+                        lyric += "\n" + line;
+                    }
+                }
+            }
+            for (int j = 0; j < times.Count; j++)
+            {
+                int _index = _lrcTime.FindIndex((x) => x > times[j]);
+                if (_index == -1)
+                {
+                    _lrcTime.Add(times[j]);
+                    _lrcText.Add(lyric);
+                }
+                else
+                {
+                    _lrcTime.Insert(_index, times[j]);
+                    _lrcText.Insert(_index, lyric);
+                }
+            }
+        }
+        static float stringTimeToFloat(string value)
+        {
+            string[] time = value.Split(':');
+            // [01:02.03]
+            // [01:02.003]
+            if (time.Length == 2 && value.Contains("."))
+            {
+                // 01
+                // 02.03
+                // 02.003
+                string[] _time = time[1].Split('.');
+                // 02
+                // 03
+                // 003
+                int minute = int.Parse(time[0]);
+                int second = int.Parse(_time[0]);
+                // _time[1] 补齐 3 位
+                int millisecond = int.Parse(_time[1].PadRight(3, '0'));
+                return minute * 60 + second + millisecond / 1000f;
+            }
+            // [00:00]
+            else if (time.Length == 2)
+            {
+                int minute = int.Parse(time[0]);
+                int second = int.Parse(time[1]);
+                // return minute * 60 * 1000 + second * 1000;
+                return minute * 60 + second;
+            }
+            // [00:00:00]
+            else if (time.Length == 3)
+            {
+                int minute = int.Parse(time[0]);
+                int second = int.Parse(time[1]);
+                int millisecond = int.Parse(time[2].PadRight(3, '0'));
+                // return minute * 60 * 1000 + second * 1000 + millisecond;
+                return minute * 60 + second + millisecond / 1000f;
+            }
+            return -1;
+        }
+    }
+}
