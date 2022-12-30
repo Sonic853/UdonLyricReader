@@ -28,45 +28,47 @@ namespace UdonLab
             };
             root.Add(container);
             var lyricReader = (LyricReader)target;
-            List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles", true);
-            List<AudioClip> audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips", true);
-            var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets", true);
-            var offsets = new List<float>();
-            foreach (var offset_obj in offsets_obj)
-            {
-                offsets.Add((float)offset_obj);
-            }
-            if (lrcFiles.Count > audioClips.Count)
-            {
-                for (int i = audioClips.Count; i < lrcFiles.Count; i++)
-                {
-                    audioClips.Add(null);
-                }
-            }
-            else if (lrcFiles.Count < audioClips.Count)
-            {
-                for (int i = lrcFiles.Count; i < audioClips.Count; i++)
-                {
-                    lrcFiles.Add(null);
-                }
-            }
-            if (lrcFiles.Count > offsets.Count)
-            {
-                for (int i = offsets.Count; i < lrcFiles.Count; i++)
-                {
-                    offsets.Add(0);
-                }
-            }
-            else if (lrcFiles.Count < offsets.Count)
-            {
-                for (int i = lrcFiles.Count; i < offsets.Count; i++)
-                {
-                    offsets.RemoveAt(i);
-                }
-            }
+            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs", true);
+            // List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles", true);
+            // List<AudioClip> audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips", true);
+            // var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets", true);
+            // var offsets = new List<float>();
+            // foreach (var offset_obj in offsets_obj)
+            // {
+            //     offsets.Add((float)offset_obj);
+            // }
+            // if (lrcFiles.Count > audioClips.Count)
+            // {
+            //     for (int i = audioClips.Count; i < lrcFiles.Count; i++)
+            //     {
+            //         audioClips.Add(null);
+            //     }
+            // }
+            // else if (lrcFiles.Count < audioClips.Count)
+            // {
+            //     for (int i = lrcFiles.Count; i < audioClips.Count; i++)
+            //     {
+            //         lrcFiles.Add(null);
+            //     }
+            // }
+            // if (lrcFiles.Count > offsets.Count)
+            // {
+            //     for (int i = offsets.Count; i < lrcFiles.Count; i++)
+            //     {
+            //         offsets.Add(0);
+            //     }
+            // }
+            // else if (lrcFiles.Count < offsets.Count)
+            // {
+            //     for (int i = lrcFiles.Count; i < offsets.Count; i++)
+            //     {
+            //         offsets.RemoveAt(i);
+            //     }
+            // }
             var musicListFoldout = new Foldout()
             {
-                text = $"Music List ({lrcFiles.Count})",
+                // text = $"Music List ({lrcFiles.Count})",
+                text = $"Music List ({musicLrcs.Count})",
                 value = true,
             };
             root.Add(musicListFoldout);
@@ -74,8 +76,9 @@ namespace UdonLab
             {
                 name = "musicList",
                 makeItem = () => new VisualElement(),
-                itemHeight = 80,
-                itemsSource = lrcFiles,
+                itemHeight = 135,
+                // itemsSource = lrcFiles,
+                itemsSource = musicLrcs,
                 selectionType = SelectionType.None,
             };
             musicListView.bindItem = (element, index) =>
@@ -86,40 +89,85 @@ namespace UdonLab
                 {
                     name = "audioClip",
                     objectType = typeof(AudioClip),
-                    value = audioClips[index],
+                    // value = audioClips[index],
+                    value = musicLrcs[index].audioClip,
                     label = "Audio Clip",
                 };
                 audioClipField.RegisterValueChangedCallback((e) =>
                 {
-                    audioClips[index] = (AudioClip)e.newValue;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    // audioClips[index] = (AudioClip)e.newValue;
+                    musicLrcs[index].audioClip = (AudioClip)e.newValue;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                 });
                 ve.Add(audioClipField);
                 var lrcFileField = new ObjectField()
                 {
                     name = "lrcFile",
                     objectType = typeof(TextAsset),
-                    value = lrcFiles[index],
+                    // value = lrcFiles[index],
+                    value = musicLrcs[index].lrcFile,
                     label = "LRC File",
                 };
                 lrcFileField.RegisterValueChangedCallback((e) =>
                 {
-                    lrcFiles[index] = (TextAsset)e.newValue;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    // lrcFiles[index] = (TextAsset)e.newValue;
+                    musicLrcs[index].lrcFile = (TextAsset)e.newValue;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
                 });
                 ve.Add(lrcFileField);
+                var titleField = new TextField()
+                {
+                    name = "title",
+                    value = musicLrcs[index].lyricInfo[0],
+                    label = "Title",
+                };
+                titleField.RegisterValueChangedCallback((e) =>
+                {
+                    musicLrcs[index].lyricInfo[0] = e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
+                });
+                ve.Add(titleField);
+                var artistField = new TextField()
+                {
+                    name = "artist",
+                    value = musicLrcs[index].lyricInfo[1],
+                    label = "Artist",
+                };
+                artistField.RegisterValueChangedCallback((e) =>
+                {
+                    musicLrcs[index].lyricInfo[1] = e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
+                });
+                ve.Add(artistField);
+                var albumField = new TextField()
+                {
+                    name = "album",
+                    value = musicLrcs[index].lyricInfo[2],
+                    label = "Album",
+                };
+                albumField.RegisterValueChangedCallback((e) =>
+                {
+                    musicLrcs[index].lyricInfo[2] = e.newValue;
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
+                });
+                ve.Add(albumField);
                 var offsetField = new FloatField()
                 {
                     name = "offset",
-                    value = offsets[index],
+                    // value = offsets[index],
+                    value = musicLrcs[index].offset,
                     label = "Offset",
                 };
                 offsetField.RegisterValueChangedCallback((e) =>
                 {
                     // Debug.Log($"offset: {e.newValue}");
-                    offsets[index] = e.newValue;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    // offsets[index] = e.newValue;
+                    musicLrcs[index].offset = e.newValue;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                 });
                 ve.Add(offsetField);
                 var _ve = new VisualElement();
@@ -127,18 +175,22 @@ namespace UdonLab
                 var upButton = new Button(() =>
                 {
                     if (index == 0) return;
-                    var _lrcFile = lrcFiles[index];
-                    var _audioClip = audioClips[index];
-                    var _offset = offsets[index];
-                    lrcFiles[index] = lrcFiles[index - 1];
-                    audioClips[index] = audioClips[index - 1];
-                    offsets[index] = offsets[index - 1];
-                    lrcFiles[index - 1] = _lrcFile;
-                    audioClips[index - 1] = _audioClip;
-                    offsets[index - 1] = _offset;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    // var _lrcFile = lrcFiles[index];
+                    // var _audioClip = audioClips[index];
+                    // var _offset = offsets[index];
+                    // lrcFiles[index] = lrcFiles[index - 1];
+                    // audioClips[index] = audioClips[index - 1];
+                    // offsets[index] = offsets[index - 1];
+                    // lrcFiles[index - 1] = _lrcFile;
+                    // audioClips[index - 1] = _audioClip;
+                    // offsets[index - 1] = _offset;
+                    var _musicLrc = musicLrcs[index];
+                    musicLrcs[index] = musicLrcs[index - 1];
+                    musicLrcs[index - 1] = _musicLrc;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
                     musicListView.Refresh();
                 })
@@ -149,19 +201,24 @@ namespace UdonLab
                 _ve.Add(upButton);
                 var downButton = new Button(() =>
                 {
-                    if (index == lrcFiles.Count - 1) return;
-                    var _lrcFile = lrcFiles[index];
-                    var _audioClip = audioClips[index];
-                    var _offset = offsets[index];
-                    lrcFiles[index] = lrcFiles[index + 1];
-                    audioClips[index] = audioClips[index + 1];
-                    offsets[index] = offsets[index + 1];
-                    lrcFiles[index + 1] = _lrcFile;
-                    audioClips[index + 1] = _audioClip;
-                    offsets[index + 1] = _offset;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    // if (index == lrcFiles.Count - 1) return;
+                    if (index == musicLrcs.Count - 1) return;
+                    // var _lrcFile = lrcFiles[index];
+                    // var _audioClip = audioClips[index];
+                    // var _offset = offsets[index];
+                    // lrcFiles[index] = lrcFiles[index + 1];
+                    // audioClips[index] = audioClips[index + 1];
+                    // offsets[index] = offsets[index + 1];
+                    // lrcFiles[index + 1] = _lrcFile;
+                    // audioClips[index + 1] = _audioClip;
+                    // offsets[index + 1] = _offset;
+                    var _musicLrc = musicLrcs[index];
+                    musicLrcs[index] = musicLrcs[index + 1];
+                    musicLrcs[index + 1] = _musicLrc;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
                     musicListView.Refresh();
                 })
@@ -172,14 +229,19 @@ namespace UdonLab
                 _ve.Add(downButton);
                 var removeButton = new Button(() =>
                 {
-                    audioClips.RemoveAt(index);
-                    lrcFiles.RemoveAt(index);
-                    offsets.RemoveAt(index);
-                    musicListFoldout.text = $"Music List ({lrcFiles.Count})";
-                    musicListView.style.height = lrcFiles.Count * 80;
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    // audioClips.RemoveAt(index);
+                    // lrcFiles.RemoveAt(index);
+                    // offsets.RemoveAt(index);
+                    DestroyImmediate(musicLrcs[index].gameObject);
+                    musicLrcs.RemoveAt(index);
+                    // musicListFoldout.text = $"Music List ({lrcFiles.Count})";
+                    musicListFoldout.text = $"Music List ({musicLrcs.Count})";
+                    // musicListView.style.height = lrcFiles.Count * 135;
+                    musicListView.style.height = musicLrcs.Count * 135;
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
                     musicListView.Refresh();
                 })
@@ -190,18 +252,26 @@ namespace UdonLab
                 _ve.Add(removeButton);
                 ve.Add(_ve);
             };
-            musicListView.style.height = lrcFiles.Count * 80;
+            // musicListView.style.height = lrcFiles.Count * 135;
+            musicListView.style.height = musicLrcs.Count * 135;
             musicListFoldout.Add(musicListView);
             var addMusicButton = new Button(() =>
             {
-                audioClips.Add(null);
-                lrcFiles.Add(null);
-                offsets.Add(0f);
-                musicListFoldout.text = $"Music List ({lrcFiles.Count})";
-                musicListView.style.height = lrcFiles.Count * 80;
-                SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                // audioClips.Add(null);
+                // lrcFiles.Add(null);
+                // offsets.Add(0f);
+                var musicLrcObj = new GameObject($"MusicLrc ({musicLrcs.Count})");
+                var musicLrc = musicLrcObj.AddComponent<MusicLrc>();
+                musicLrcObj.transform.SetParent(lyricReader.transform);
+                musicLrcs.Add(musicLrc);
+                // musicListFoldout.text = $"Music List ({lrcFiles.Count})";
+                // musicListView.style.height = lrcFiles.Count * 135;
+                musicListFoldout.text = $"Music List ({musicLrcs.Count})";
+                musicListView.style.height = musicLrcs.Count * 135;
+                // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
+                // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
+                // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                 musicListView.Refresh();
             })
             {
@@ -212,26 +282,43 @@ namespace UdonLab
         }
         static void ReadAllLrcFile(SerializedObject serializedObject)
         {
-            var lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles");
+            // var lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles");
             // var audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips");
-            var lrcTexts = new List<string[]>();
-            var lrcTimes = new List<float[]>();
-            var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets");
-            var offsets = new List<float>();
-            foreach (var offset_obj in offsets_obj)
+            // var lrcTexts = new List<string[]>();
+            // var lrcTimes = new List<float[]>();
+            // var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets");
+            // var offsets = new List<float>();
+            // foreach (var offset_obj in offsets_obj)
+            // {
+            //     offsets.Add((float)offset_obj);
+            // }
+            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs");
+            // for (int i = 0; i < lrcFiles.Count; i++)
+            // {
+            //     ReadLrcFile(lrcFiles[i], out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
+            //     lrcTexts.Add(_lrcText.ToArray());
+            //     lrcTimes.Add(_lrcTime.ToArray());
+            //     offsets[i] = _hasLyric ? _offset : offsets[i];
+            // }
+            for (int i = 0; i < musicLrcs.Count; i++)
             {
-                offsets.Add((float)offset_obj);
+                var musicLrc = musicLrcs[i];
+                ReadLrcFile(musicLrc.lrcFile, out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
+                musicLrc.lrcText = _lrcText.ToArray();
+                musicLrc.lrcTime = _lrcTime.ToArray();
+                musicLrc.offset = _hasLyric ? _offset : musicLrc.offset;
+                for (int j = 0; j < _lyricInfo.Length; j++)
+                {
+                    // musicLrc.lyricInfo[j] = _lyricInfo[j];
+                    if (string.IsNullOrEmpty(musicLrc.lyricInfo[j]))
+                    {
+                        musicLrc.lyricInfo[j] = _lyricInfo[j];
+                    }
+                }
             }
-            for (int i = 0; i < lrcFiles.Count; i++)
-            {
-                ReadLrcFile(lrcFiles[i], out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
-                lrcTexts.Add(_lrcText.ToArray());
-                lrcTimes.Add(_lrcTime.ToArray());
-                offsets[i] = _hasLyric ? _offset : offsets[i];
-            }
-            SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTexts", lrcTexts);
-            SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTimes", lrcTimes);
-            SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTexts", lrcTexts);
+            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTimes", lrcTimes);
+            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
         }
         static void ReadLrcFile(TextAsset _lrcFile, out List<string> _lrcText, out List<float> _lrcTime, out float _offset, out string[] _lyricInfo, out bool _hasLyric)
         {
