@@ -8,7 +8,7 @@ using UdonLab.QuickUIElement;
 using UdonLab.EditorUI;
 using System;
 
-namespace UdonLab
+namespace UdonLab.Lyric
 {
     [CustomEditor(typeof(LyricReader))]
     public class LyricReaderEditor : Editor
@@ -28,7 +28,7 @@ namespace UdonLab
             };
             root.Add(container);
             var lyricReader = (LyricReader)target;
-            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs", true);
+            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs", false);
             // List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles", true);
             // List<AudioClip> audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips", true);
             // var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets", true);
@@ -97,6 +97,7 @@ namespace UdonLab
                 {
                     // audioClips[index] = (AudioClip)e.newValue;
                     musicLrcs[index].audioClip = (AudioClip)e.newValue;
+                    if (e.newValue != null) musicLrcs[index].name = e.newValue.name;
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                 });
@@ -116,6 +117,7 @@ namespace UdonLab
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
+                    musicListView.Refresh();
                 });
                 ve.Add(lrcFileField);
                 var titleField = new TextField()
@@ -192,6 +194,7 @@ namespace UdonLab
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
+                    sortMusicLrcs(musicLrcs);
                     musicListView.Refresh();
                 })
                 {
@@ -220,6 +223,7 @@ namespace UdonLab
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
+                    sortMusicLrcs(musicLrcs);
                     musicListView.Refresh();
                 })
                 {
@@ -243,6 +247,7 @@ namespace UdonLab
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
+                    sortMusicLrcs(musicLrcs);
                     musicListView.Refresh();
                 })
                 {
@@ -263,6 +268,9 @@ namespace UdonLab
                 var musicLrcObj = new GameObject($"MusicLrc ({musicLrcs.Count})");
                 var musicLrc = musicLrcObj.AddComponent<MusicLrc>();
                 musicLrcObj.transform.SetParent(lyricReader.transform);
+                musicLrcObj.transform.localPosition = Vector3.zero;
+                musicLrcObj.transform.localRotation = Quaternion.identity;
+                musicLrcObj.transform.localScale = Vector3.one;
                 musicLrcs.Add(musicLrc);
                 // musicListFoldout.text = $"Music List ({lrcFiles.Count})";
                 // musicListView.style.height = lrcFiles.Count * 135;
@@ -277,7 +285,16 @@ namespace UdonLab
             {
                 text = "Add Music",
             };
-            root.Add(addMusicButton);
+            musicListFoldout.Add(addMusicButton);
+            var refreshLrcButton = new Button(() =>
+            {
+                ReadAllLrcFile(serializedObject);
+                musicListView.Refresh();
+            })
+            {
+                text = "Refresh Lrc",
+            };
+            musicListFoldout.Add(refreshLrcButton);
             return root;
         }
         static void ReadAllLrcFile(SerializedObject serializedObject)
@@ -554,6 +571,14 @@ namespace UdonLab
                 return minute * 60 + second + millisecond / 1000f;
             }
             return -1;
+        }
+        // 重新排序 musicLrcs 的层级
+        static void sortMusicLrcs(List<MusicLrc> musicLrcs)
+        {
+            for (int i = 0; i < musicLrcs.Count; i++)
+            {
+                musicLrcs[i].transform.SetSiblingIndex(i);
+            }
         }
     }
 }

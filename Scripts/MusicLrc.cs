@@ -5,7 +5,7 @@ using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
 
-namespace UdonLab
+namespace UdonLab.Lyric
 {
     public class MusicLrc : UdonSharpBehaviour
     {
@@ -22,17 +22,18 @@ namespace UdonLab
         /// <summary>
         /// 歌词文本
         /// </summary>
-        [NonSerialized] public string[] lrcText = new string[0];
+        [TextArea(3, 10)]
+        [HideInInspector] public string[] lrcText = new string[0];
         /// <summary>
         /// 歌词时间
         /// </summary>
-        [NonSerialized] public float[] lrcTime = new float[0];
+        [HideInInspector] public float[] lrcTime = new float[0];
         /// <summary>
         /// 偏移
         /// </summary>
         [Header("偏移")]
         [SerializeField] public float offset = 0f;
-        [NonSerialized]
+        [HideInInspector]
         public string[] lyricInfo = new string[] {
                 // 歌曲：
                 "",
