@@ -62,7 +62,15 @@ namespace UdonLab.Lyric
                 {
                     if (musicLrcs[i] == null) continue;
                     var item = Instantiate(playListItem, playList.transform);
-                    var _musicName = string.IsNullOrEmpty(musicLrcs[i].lyricInfo[0]) ? musicLrcs[i].name : $"{musicLrcs[i].lyricInfo[0]} - {musicLrcs[i].lyricInfo[1]}";
+                    var _musicName = musicLrcs[i].name;
+                    if (!string.IsNullOrEmpty(musicLrcs[i].lyricInfo[0]))
+                    {
+                        _musicName = $"{musicLrcs[i].lyricInfo[0]}";
+                        if (!string.IsNullOrEmpty(musicLrcs[i].lyricInfo[1]))
+                        {
+                            _musicName += $" - {musicLrcs[i].lyricInfo[1]}";
+                        }
+                    }
                     var _text = (Text)item.GetComponent(typeof(Text));
                     if (_text != null) _text.text = _musicName;
                     var _udonSharpBehaviour = (UdonSharpBehaviour)item.GetComponent(typeof(UdonSharpBehaviour));
