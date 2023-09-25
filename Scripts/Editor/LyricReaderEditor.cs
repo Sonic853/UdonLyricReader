@@ -28,10 +28,10 @@ namespace UdonLab.Lyric
             };
             root.Add(container);
             var lyricReader = (LyricReader)target;
-            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs", false);
-            // List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles", true);
-            // List<AudioClip> audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips", true);
-            // var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets", true);
+            var musicLrcs = SerializedObjectKit.GetSerializedUnityObjectList<MusicLrc>(serializedObject, "musicLrcs", false);
+            // List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedUnityObjectList<TextAsset>(serializedObject, "lrcFiles", true);
+            // List<AudioClip> audioClips = SerializedObjectKit.GetSerializedUnityObjectList<AudioClip>(serializedObject, "audioClips", true);
+            // var offsets_obj = SerializedObjectKit.GetSerializedUnityObjectList(serializedObject, "offsets", true);
             // var offsets = new List<float>();
             // foreach (var offset_obj in offsets_obj)
             // {
@@ -299,17 +299,17 @@ namespace UdonLab.Lyric
         }
         static void ReadAllLrcFile(SerializedObject serializedObject)
         {
-            // var lrcFiles = SerializedObjectKit.GetSerializedObjectList<TextAsset>(serializedObject, "lrcFiles");
-            // var audioClips = SerializedObjectKit.GetSerializedObjectList<AudioClip>(serializedObject, "audioClips");
+            // var lrcFiles = SerializedObjectKit.GetSerializedUnityObjectList<TextAsset>(serializedObject, "lrcFiles");
+            // var audioClips = SerializedObjectKit.GetSerializedUnityObjectList<AudioClip>(serializedObject, "audioClips");
             // var lrcTexts = new List<string[]>();
             // var lrcTimes = new List<float[]>();
-            // var offsets_obj = SerializedObjectKit.GetSerializedObjectList(serializedObject, "offsets");
+            // var offsets_obj = SerializedObjectKit.GetSerializedUnityObjectList(serializedObject, "offsets");
             // var offsets = new List<float>();
             // foreach (var offset_obj in offsets_obj)
             // {
             //     offsets.Add((float)offset_obj);
             // }
-            var musicLrcs = SerializedObjectKit.GetSerializedObjectList<MusicLrc>(serializedObject, "musicLrcs");
+            var musicLrcs = SerializedObjectKit.GetSerializedUnityObjectList<MusicLrc>(serializedObject, "musicLrcs");
             // for (int i = 0; i < lrcFiles.Count; i++)
             // {
             //     ReadLrcFile(lrcFiles[i], out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);

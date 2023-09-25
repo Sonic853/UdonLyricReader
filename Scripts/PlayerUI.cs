@@ -75,13 +75,13 @@ namespace UdonLab.Lyric
                     if (_text != null) _text.text = _musicName;
                     var _udonSharpBehaviour = (UdonSharpBehaviour)item.GetComponent(typeof(UdonSharpBehaviour));
                     if (_udonSharpBehaviour != null
-                    && _udonSharpBehaviour.GetUdonTypeName() == "UdonLab.Toolkit.UdonInteractFunctionWithInt")
+                    && _udonSharpBehaviour.GetUdonTypeName() == "UdonLab.Toolkit.UdonSendFunctionWithInt")
                     {
-                        var _udonInteractFunctionWithInt = (UdonLab.Toolkit.UdonInteractFunctionWithInt)_udonSharpBehaviour;
+                        var _udonInteractFunctionWithInt = (UdonLab.Toolkit.UdonSendFunctionWithInt)_udonSharpBehaviour;
                         _udonInteractFunctionWithInt.udonBehaviours = new UdonBehaviour[] { (UdonBehaviour)lyricPlayer.GetComponent(typeof(UdonBehaviour)) };
-                        _udonInteractFunctionWithInt.functionName = "PlayInt";
-                        _udonInteractFunctionWithInt.setIntValue = "PlayInt_int";
-                        _udonInteractFunctionWithInt.value = i;
+                        _udonInteractFunctionWithInt.functionNames = new string[] { "PlayInt" };
+                        _udonInteractFunctionWithInt.valueNames = new string[] { "PlayInt_int" };
+                        _udonInteractFunctionWithInt.values = new int[] { i };
                     }
                     var _time = (Text)item.transform.Find("Time").GetComponent(typeof(Text));
                     if (_time != null) _time.text = $"{(int)musicLrcs[i].audioClip.length / 60:D2}:{(int)musicLrcs[i].audioClip.length % 60:D2}";
