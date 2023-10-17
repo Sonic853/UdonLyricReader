@@ -75,9 +75,9 @@ namespace UdonLab.Lyric
                     if (_text != null) _text.text = _musicName;
                     var _udonSharpBehaviour = (UdonSharpBehaviour)item.GetComponent(typeof(UdonSharpBehaviour));
                     if (_udonSharpBehaviour != null
-                    && _udonSharpBehaviour.GetUdonTypeName() == "UdonLab.Toolkit.UdonSendFunctionWithInt")
+                    && _udonSharpBehaviour.GetUdonTypeName() == "UdonLab.Toolkit.UdonSendFunctionsWithInt")
                     {
-                        var _udonInteractFunctionWithInt = (UdonLab.Toolkit.UdonSendFunctionWithInt)_udonSharpBehaviour;
+                        var _udonInteractFunctionWithInt = (UdonLab.Toolkit.UdonSendFunctionsWithInt)_udonSharpBehaviour;
                         _udonInteractFunctionWithInt.udonBehaviours = new UdonBehaviour[] { (UdonBehaviour)lyricPlayer.GetComponent(typeof(UdonBehaviour)) };
                         _udonInteractFunctionWithInt.functionNames = new string[] { "PlayInt" };
                         _udonInteractFunctionWithInt.valueNames = new string[] { "PlayInt_int" };
