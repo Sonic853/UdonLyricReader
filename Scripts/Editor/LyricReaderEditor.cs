@@ -4,11 +4,9 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
-using UdonLab.QuickUIElement;
-using UdonLab.EditorUI;
 using System;
 
-namespace UdonLab.Lyric
+namespace UdonLab.Lyric.Editors
 {
     [CustomEditor(typeof(LyricReader))]
     public class LyricReaderEditor : Editor
@@ -17,7 +15,7 @@ namespace UdonLab.Lyric
         {
             var root = new VisualElement();
             root.AddToClassList("CustomEditor");
-            UIElementMethod.InsertStyleSheet(ref root);
+            InsertStyleSheet(ref root, "Assets/Sonic853/Udon Lab/LyricReader/Scripts/Editor/LyricReaderEditor.uss");
             root.Bind(serializedObject);
             var container = new IMGUIContainer(() =>
             {
@@ -29,45 +27,8 @@ namespace UdonLab.Lyric
             root.Add(container);
             var lyricReader = (LyricReader)target;
             var musicLrcs = SerializedObjectKit.GetSerializedUnityObjectList<MusicLrc>(serializedObject, "musicLrcs", false);
-            // List<TextAsset> lrcFiles = SerializedObjectKit.GetSerializedUnityObjectList<TextAsset>(serializedObject, "lrcFiles", true);
-            // List<AudioClip> audioClips = SerializedObjectKit.GetSerializedUnityObjectList<AudioClip>(serializedObject, "audioClips", true);
-            // var offsets_obj = SerializedObjectKit.GetSerializedUnityObjectList(serializedObject, "offsets", true);
-            // var offsets = new List<float>();
-            // foreach (var offset_obj in offsets_obj)
-            // {
-            //     offsets.Add((float)offset_obj);
-            // }
-            // if (lrcFiles.Count > audioClips.Count)
-            // {
-            //     for (int i = audioClips.Count; i < lrcFiles.Count; i++)
-            //     {
-            //         audioClips.Add(null);
-            //     }
-            // }
-            // else if (lrcFiles.Count < audioClips.Count)
-            // {
-            //     for (int i = lrcFiles.Count; i < audioClips.Count; i++)
-            //     {
-            //         lrcFiles.Add(null);
-            //     }
-            // }
-            // if (lrcFiles.Count > offsets.Count)
-            // {
-            //     for (int i = offsets.Count; i < lrcFiles.Count; i++)
-            //     {
-            //         offsets.Add(0);
-            //     }
-            // }
-            // else if (lrcFiles.Count < offsets.Count)
-            // {
-            //     for (int i = lrcFiles.Count; i < offsets.Count; i++)
-            //     {
-            //         offsets.RemoveAt(i);
-            //     }
-            // }
             var musicListFoldout = new Foldout()
             {
-                // text = $"Music List ({lrcFiles.Count})",
                 text = $"Music List ({musicLrcs.Count})",
                 value = true,
             };
@@ -76,8 +37,7 @@ namespace UdonLab.Lyric
             {
                 name = "musicList",
                 makeItem = () => new VisualElement(),
-                itemHeight = 135,
-                // itemsSource = lrcFiles,
+                fixedItemHeight = 140,
                 itemsSource = musicLrcs,
                 selectionType = SelectionType.None,
             };
@@ -117,7 +77,7 @@ namespace UdonLab.Lyric
                     // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
-                    musicListView.Refresh();
+                    musicListView.Rebuild();
                 });
                 ve.Add(lrcFileField);
                 var titleField = new TextField()
@@ -177,25 +137,11 @@ namespace UdonLab.Lyric
                 var upButton = new Button(() =>
                 {
                     if (index == 0) return;
-                    // var _lrcFile = lrcFiles[index];
-                    // var _audioClip = audioClips[index];
-                    // var _offset = offsets[index];
-                    // lrcFiles[index] = lrcFiles[index - 1];
-                    // audioClips[index] = audioClips[index - 1];
-                    // offsets[index] = offsets[index - 1];
-                    // lrcFiles[index - 1] = _lrcFile;
-                    // audioClips[index - 1] = _audioClip;
-                    // offsets[index - 1] = _offset;
-                    var _musicLrc = musicLrcs[index];
-                    musicLrcs[index] = musicLrcs[index - 1];
-                    musicLrcs[index - 1] = _musicLrc;
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    (musicLrcs[index - 1], musicLrcs[index]) = (musicLrcs[index], musicLrcs[index - 1]);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
-                    sortMusicLrcs(musicLrcs);
-                    musicListView.Refresh();
+                    SortMusicLrcs(musicLrcs);
+                    musicListView.Rebuild();
                 })
                 {
                     text = "↑",
@@ -204,27 +150,12 @@ namespace UdonLab.Lyric
                 _ve.Add(upButton);
                 var downButton = new Button(() =>
                 {
-                    // if (index == lrcFiles.Count - 1) return;
                     if (index == musicLrcs.Count - 1) return;
-                    // var _lrcFile = lrcFiles[index];
-                    // var _audioClip = audioClips[index];
-                    // var _offset = offsets[index];
-                    // lrcFiles[index] = lrcFiles[index + 1];
-                    // audioClips[index] = audioClips[index + 1];
-                    // offsets[index] = offsets[index + 1];
-                    // lrcFiles[index + 1] = _lrcFile;
-                    // audioClips[index + 1] = _audioClip;
-                    // offsets[index + 1] = _offset;
-                    var _musicLrc = musicLrcs[index];
-                    musicLrcs[index] = musicLrcs[index + 1];
-                    musicLrcs[index + 1] = _musicLrc;
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    (musicLrcs[index + 1], musicLrcs[index]) = (musicLrcs[index], musicLrcs[index + 1]);
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
-                    sortMusicLrcs(musicLrcs);
-                    musicListView.Refresh();
+                    SortMusicLrcs(musicLrcs);
+                    musicListView.Rebuild();
                 })
                 {
                     text = "↓",
@@ -233,22 +164,15 @@ namespace UdonLab.Lyric
                 _ve.Add(downButton);
                 var removeButton = new Button(() =>
                 {
-                    // audioClips.RemoveAt(index);
-                    // lrcFiles.RemoveAt(index);
-                    // offsets.RemoveAt(index);
                     DestroyImmediate(musicLrcs[index].gameObject);
                     musicLrcs.RemoveAt(index);
-                    // musicListFoldout.text = $"Music List ({lrcFiles.Count})";
                     musicListFoldout.text = $"Music List ({musicLrcs.Count})";
-                    // musicListView.style.height = lrcFiles.Count * 135;
                     musicListView.style.height = musicLrcs.Count * 135;
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
-                    // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
+                    musicListView.style.display = musicLrcs.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
                     SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
                     ReadAllLrcFile(serializedObject);
-                    sortMusicLrcs(musicLrcs);
-                    musicListView.Refresh();
+                    SortMusicLrcs(musicLrcs);
+                    musicListView.Rebuild();
                 })
                 {
                     text = "Remove",
@@ -259,6 +183,7 @@ namespace UdonLab.Lyric
             };
             // musicListView.style.height = lrcFiles.Count * 135;
             musicListView.style.height = musicLrcs.Count * 135;
+            musicListView.style.display = musicLrcs.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
             musicListFoldout.Add(musicListView);
             var addMusicButton = new Button(() =>
             {
@@ -276,11 +201,12 @@ namespace UdonLab.Lyric
                 // musicListView.style.height = lrcFiles.Count * 135;
                 musicListFoldout.text = $"Music List ({musicLrcs.Count})";
                 musicListView.style.height = musicLrcs.Count * 135;
+                musicListView.style.display = musicLrcs.Count == 0 ? DisplayStyle.None : DisplayStyle.Flex;
                 // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcFiles", lrcFiles);
                 // SerializedObjectKit.SetSerializedObjectList(serializedObject, "audioClips", audioClips);
                 // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
                 SerializedObjectKit.SetSerializedObjectList(serializedObject, "musicLrcs", musicLrcs);
-                musicListView.Refresh();
+                musicListView.Rebuild();
             })
             {
                 text = "Add Music",
@@ -289,7 +215,7 @@ namespace UdonLab.Lyric
             var refreshLrcButton = new Button(() =>
             {
                 ReadAllLrcFile(serializedObject);
-                musicListView.Refresh();
+                musicListView.Rebuild();
             })
             {
                 text = "Refresh Lrc",
@@ -299,43 +225,33 @@ namespace UdonLab.Lyric
         }
         static void ReadAllLrcFile(SerializedObject serializedObject)
         {
-            // var lrcFiles = SerializedObjectKit.GetSerializedUnityObjectList<TextAsset>(serializedObject, "lrcFiles");
-            // var audioClips = SerializedObjectKit.GetSerializedUnityObjectList<AudioClip>(serializedObject, "audioClips");
-            // var lrcTexts = new List<string[]>();
-            // var lrcTimes = new List<float[]>();
-            // var offsets_obj = SerializedObjectKit.GetSerializedUnityObjectList(serializedObject, "offsets");
-            // var offsets = new List<float>();
-            // foreach (var offset_obj in offsets_obj)
-            // {
-            //     offsets.Add((float)offset_obj);
-            // }
             var musicLrcs = SerializedObjectKit.GetSerializedUnityObjectList<MusicLrc>(serializedObject, "musicLrcs");
-            // for (int i = 0; i < lrcFiles.Count; i++)
-            // {
-            //     ReadLrcFile(lrcFiles[i], out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
-            //     lrcTexts.Add(_lrcText.ToArray());
-            //     lrcTimes.Add(_lrcTime.ToArray());
-            //     offsets[i] = _hasLyric ? _offset : offsets[i];
-            // }
             for (int i = 0; i < musicLrcs.Count; i++)
             {
                 var musicLrc = musicLrcs[i];
                 ReadLrcFile(musicLrc.lrcFile, out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
+                var _lineTime = new List<float>();
+                for (int j = 0; j < _lrcTime.Count; j++)
+                {
+                    if (1 + j >= _lrcTime.Count)
+                    {
+                        _lineTime.Add(float.MaxValue);
+                        break;
+                    }
+                    _lineTime.Add(_lrcTime[j + 1] - _lrcTime[j]);
+                }
                 musicLrc.lrcText = _lrcText.ToArray();
                 musicLrc.lrcTime = _lrcTime.ToArray();
+                musicLrc.lineTime = _lineTime.ToArray();
                 musicLrc.offset = _hasLyric ? _offset : musicLrc.offset;
                 for (int j = 0; j < _lyricInfo.Length; j++)
                 {
-                    // musicLrc.lyricInfo[j] = _lyricInfo[j];
                     if (string.IsNullOrEmpty(musicLrc.lyricInfo[j]))
                     {
                         musicLrc.lyricInfo[j] = _lyricInfo[j];
                     }
                 }
             }
-            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTexts", lrcTexts);
-            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "lrcTimes", lrcTimes);
-            // SerializedObjectKit.SetSerializedObjectList(serializedObject, "offsets", offsets);
         }
         static void ReadLrcFile(TextAsset _lrcFile, out List<string> _lrcText, out List<float> _lrcTime, out float _offset, out string[] _lyricInfo, out bool _hasLyric)
         {
@@ -417,7 +333,7 @@ namespace UdonLab.Lyric
                             // [00:00:00
                             // [00:00.0 [00:00.00
                             {
-                                float time = stringTimeToFloat(timeAndLyric[j].Trim().Substring(1));
+                                float time = StringTimeToFloat(timeAndLyric[j].Trim()[1..]);
                                 if (time != -1)
                                 {
                                     int _index = times.FindIndex((x) => x > time);
@@ -447,48 +363,48 @@ namespace UdonLab.Lyric
                             // [ar:歌手名]
                             case true when line.StartsWith("[ar:"):
                                 {
-                                    _lyricInfo[1] = "歌手：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                    _lyricInfo[1] = "歌手：" + line[4..line.LastIndexOf(']')];
                                 }
                                 break;
                             // [al:专辑]
                             case true when line.StartsWith("[al:"):
                                 {
-                                    _lyricInfo[2] = "专辑：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                    _lyricInfo[2] = "专辑：" + line[4..line.LastIndexOf(']')];
                                 }
                                 break;
                             // [ti:歌词（歌曲）标题]
                             case true when line.StartsWith("[ti:"):
                                 {
-                                    _lyricInfo[0] = "歌曲：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                    _lyricInfo[0] = "歌曲：" + line[4..line.LastIndexOf(']')];
                                 }
                                 break;
                             // [au:作词]
                             case true when line.StartsWith("[au:"):
                                 {
-                                    _lyricInfo[3] = "作词：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                    _lyricInfo[3] = "作词：" + line[4..line.LastIndexOf(']')];
                                 }
                                 break;
                             // [by:LRC 文件的创建者]
                             case true when line.StartsWith("[by:"):
                                 {
-                                    _lyricInfo[4] = "歌词：" + line.Substring(4, line.LastIndexOf(']') - 4);
+                                    _lyricInfo[4] = "歌词：" + line[4..line.LastIndexOf(']')];
                                 }
                                 break;
                             // [length:这首歌有多长]
                             case true when line.StartsWith("[length:"):
                                 {
-                                    _lyricInfo[5] = "时长：" + line.Substring(8, line.LastIndexOf(']') - 8);
+                                    _lyricInfo[5] = "时长：" + line[8..line.LastIndexOf(']')];
                                 }
                                 break;
                             case true when line.StartsWith("[offset:"):
                                 {
                                     // +/- 以毫秒为单位的整体时间戳调整，+ 时间上移，- 下移
-                                    string offsetStr = line.Substring(8, line.LastIndexOf(']') - 8);
+                                    string offsetStr = line[8..line.LastIndexOf(']')];
                                     // [offset:+0]
                                     if (offsetStr.StartsWith("+"))
                                     {
                                         // 解析不报错
-                                        if (float.TryParse(offsetStr.Substring(1), out float offset))
+                                        if (float.TryParse(offsetStr[1..], out float offset))
                                         {
                                             _offset = offset / 1000f;
                                         }
@@ -533,7 +449,7 @@ namespace UdonLab.Lyric
                 }
             }
         }
-        static float stringTimeToFloat(string value)
+        static float StringTimeToFloat(string value)
         {
             string[] time = value.Split(':');
             // [01:02.03]
@@ -573,12 +489,16 @@ namespace UdonLab.Lyric
             return -1;
         }
         // 重新排序 musicLrcs 的层级
-        static void sortMusicLrcs(List<MusicLrc> musicLrcs)
+        static void SortMusicLrcs(List<MusicLrc> musicLrcs)
         {
             for (int i = 0; i < musicLrcs.Count; i++)
             {
                 musicLrcs[i].transform.SetSiblingIndex(i);
             }
+        }
+        static void InsertStyleSheet(ref VisualElement root, string s_StyleSheetPath)
+        {
+            root.styleSheets.Add(EditorGUIUtility.Load(s_StyleSheetPath) as StyleSheet);
         }
     }
 }

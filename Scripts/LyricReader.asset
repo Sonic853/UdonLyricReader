@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c333ccfdd0cbdbc4ca30cef2dd6e6b9b, type: 3}
   m_Name: LyricReader
   m_EditorClassIdentifier: 
-  serializedUdonProgramAsset: {fileID: 11400000, guid: 08b13021ad0e07c45ade6b85db098495,
-    type: 2}
+  serializedUdonProgramAsset: {fileID: 11400000, guid: 71f419130c7b1ac4db9eadfdafbc82ad, type: 2}
   udonAssembly: 
   assemblyError: 
   sourceCsScript: {fileID: 11500000, guid: 7db41e11015ceac48bcd19796a2f1b51, type: 3}

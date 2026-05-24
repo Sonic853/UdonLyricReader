@@ -14,7 +14,7 @@ namespace UdonLab.Lyric
         /// 版本号
         /// </summary>
         [Header("版本号")]
-        [NonSerialized] public string version = "0.1.0";
+        [NonSerialized] public string version = "0.2.0";
         /// <summary>
         /// LyricReader
         /// </summary>
@@ -81,7 +81,7 @@ namespace UdonLab.Lyric
         [Range(0, 3)]
         [SerializeField] public int playMode = 0;
         /// <summary>
-        /// 当前音乐索引
+        /// 当前音乐索引，在下一帧时为上一条歌词的索引
         /// </summary>
         [NonSerialized] private int currentMusicIndex = -1;
         /// <summary>
@@ -168,6 +168,7 @@ namespace UdonLab.Lyric
                         AnimatorTransitionTime = clip.length;
                     }
                 }
+                Debug.Log($"AnimatorTransitionTime: {AnimatorTransitionTime}");
             }
             if (autoPlay)
             {
@@ -177,7 +178,8 @@ namespace UdonLab.Lyric
         void Update()
         {
             if (!isPlaying || currentMusicIndex == -1 || currentMusicIndex >= lyricReader._musicLrcs.Length) return;
-            if (audioSource.time >= lyricReader._musicLrcs[currentMusicIndex].audioClip.length - 0.1f)
+            var audioSourceTime = audioSource.time;
+            if (audioSourceTime >= lyricReader._musicLrcs[currentMusicIndex].audioClip.length - 0.1f)
             {
                 switch (playMode)
                 {
@@ -198,13 +200,13 @@ namespace UdonLab.Lyric
                     case 4:
                         {
                             isPlaying = false;
-                            audioSource.time = 0;
+                            audioSourceTime = audioSource.time = 0;
                             audioSource.Stop();
                         }
                         break;
                     case 1:
                         {
-                            audioSource.time = 0;
+                            audioSourceTime = audioSource.time = 0;
                             audioSource.Play();
                         }
                         break;
@@ -212,98 +214,38 @@ namespace UdonLab.Lyric
             }
             else
             {
-                // var _t = audioSource.time + AnimatorTransitionTime;
-                // 四舍五入到小数点后三位
-                // var _t = (float)Math.Round(audioSource.time + AnimatorTransitionTime, 3);
-                // var _currentLrcText = lyricReader.GetLyricTextOffset(currentMusic, _t, 0);
-                var _readyScrollLrcIndex = lyricReader.GetLyricIndex(currentMusic, (float)Math.Round(audioSource.time + AnimatorTransitionTime, 3));
-                // var _currentLrcIndex = lyricReader.GetLyricIndex(currentMusic, audioSource.time);
-                var _currentLrcIndex = lyricReader.GetLyricIndex(currentMusic, (float)Math.Round(audioSource.time, 3));
-                // var _switchLrcText = lyricReader.GetLyricTextOffset(currentMusic, audioSource.time, switchLyricTextIndex - lyricTextIndex);
+                // 下一句歌词
+                var _readyScrollLrcIndex = currentMusic.GetLyricIndex((float)Math.Round(audioSourceTime + AnimatorTransitionTime, 3));
+                // var currentMusicLineTimeLength = currentMusic.lineTime.Length;
+                // 下一句歌词的显示时间
+                // var _readyScrollLrcTime = (_readyScrollLrcIndex < 0 || _readyScrollLrcIndex >= currentMusicLineTimeLength) ? float.MaxValue : currentMusic.lineTime[_readyScrollLrcIndex];
+                // 当前歌词
+                var _currentLrcIndex = currentMusic.GetLyricIndex((float)Math.Round(audioSourceTime, 3));
+                // 当前歌词的显示时间
+                // var _currentLrcTime = (_currentLrcIndex < 0 || _currentLrcIndex >= currentMusicLineTimeLength) ? float.MaxValue : currentMusic.lineTime[_currentLrcIndex];
                 var _lyricText = (_currentLrcIndex < 0 || _currentLrcIndex >= currentMusic.lrcText.Length) ? "" : currentMusic.lrcText[_currentLrcIndex];
-                // if (currentLrcText != _currentLrcText)
-                if (lyricAnimator != null)
+                if (lyricAnimator != null && lyricAnimator.gameObject.activeInHierarchy)
                 {
-                    if (_readyScrollLrcIndex >= 0 && readyScrollLrcIndex != _readyScrollLrcIndex)
+                    if (_currentLrcIndex >= 0 && currentLrcIndex != _currentLrcIndex)
                     {
-                        // currentLrcText = _currentLrcText;
-                        readyScrollLrcIndex = _readyScrollLrcIndex;
-                        bool animatorReseted = false;
-                        if (lyricAnimator.GetBool("Scroll"))
-                        {
-                            // if (_currentLrcIndex == _currentLrcIndex) lyricAnimator.SetTrigger("Reset");
-                            lyricAnimator.SetTrigger("Reset");
-                            animatorReseted = true;
-                        }
-                        else
-                        {
-                            lyricAnimator.SetBool("Scroll", true);
-                        }
-                        if (animatorReseted)
-                        {
-                            for (int i = 0; i < lyricTexts.Length; i++)
-                            {
-                                // if (i == switchLyricTextIndex) continue;
-                                // lyricTexts[i].text = lyricReader.GetLyricTextOffset(currentMusic, audioSource.time, (i - lyricTextIndex) + 1);
-                                var _index = _currentLrcIndex + (i - lyricTextIndex) + 1;
-                                lyricTexts[i].text = _index >= 0 && _index < currentMusic.lrcText.Length ? currentMusic.lrcText[_index] : "";
-                            }
-                            Debug.Log($"Update Switch: {lyricTexts[lyricTextIndex].text}");
-                        }
-                        // Debug.Log($"Update Switch: {currentLrcText}");
-                    }
-                    bool animatorSeted = false;
-                    if (lyricAnimator.GetBool("Scroll")
-                    && lyricAnimator.GetCurrentAnimatorStateInfo(0).length >= AnimatorTransitionTime)
-                    {
-                        if (lyricAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1.0f
-                        || lyricAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1.0f
-                        && _currentLrcIndex >= 0 && currentLrcIndex != _currentLrcIndex)
-                        {
-                            lyricAnimator.SetBool("Scroll", false);
-                            animatorSeted = true;
-                            Debug.Log($"animatorSeted: {animatorSeted}");
-                            // for (int i = 0; i < lyricTexts.Length; i++)
-                            // {
-                            //     lyricTexts[i].text = currentMusic.lrcText[_currentLrcIndex + (i - lyricTextIndex) + 1];
-                            // }
-                            // Debug.Log($"Update Switch: {lyricTexts[lyricTextIndex].text}");
-                        }
-                        if (_currentLrcIndex >= 0) currentLrcIndex = _currentLrcIndex;
-                    }
-                    else if (!lyricAnimator.GetBool("Scroll")
-                    && _currentLrcIndex >= 0 && currentLrcIndex != _currentLrcIndex
-                    && audioSource.time >= currentMusic.lrcTime[_currentLrcIndex])
-                    {
-                        currentLrcIndex = _currentLrcIndex;
-                        animatorSeted = true;
-                        Debug.Log($"animatorSeted1: {animatorSeted}");
-                    }
-                    // else if (_currentLrcIndex2 != -2)
-                    // {
-                    //     for (int i = 0; i < lyricTexts.Length; i++)
-                    //     {
-                    //         lyricTexts[i].text = currentMusic.lrcText[_currentLrcIndex2 + (i - lyricTextIndex) + 1];
-                    //     }
-                    // }
-                    // if (animatorSeted && lyricTexts[lyricTextIndex].text != _lyricText)
-                    if (animatorSeted)
-                    {
+                        lyricAnimator.SetBool("Scroll", false);
+                        lyricAnimator.Play("Wait");
                         for (int i = 0; i < lyricTexts.Length; i++)
                         {
                             if (i == lyricTextIndex) continue;
-                            // lyricTexts[i].text = 1 + i > lyricTexts.Length - 1 ? _switchLrcText : lyricTexts[1 + i].text;
                             var _index = _currentLrcIndex + (i - lyricTextIndex);
                             lyricTexts[i].text = _index >= 0 && _index < currentMusic.lrcText.Length ? currentMusic.lrcText[_index] : "";
                         }
                         lyricTexts[lyricTextIndex].text = _lyricText;
                         Debug.Log($"LateUpdate Switch: {lyricTexts[lyricTextIndex].text}");
                     }
-                    // if (lyricTexts[switchLyricTextIndex].text != _switchLrcText)
-                    // {
-                    //     lyricTexts[switchLyricTextIndex].text = _switchLrcText;
-                    //     // lyricTextIndex = lyricTextIndex + 1 > lyricTexts.Length - 1 ? 0 : lyricTextIndex + 1;
-                    // }
+                    if (!lyricAnimator.GetBool("Scroll") && _readyScrollLrcIndex >= 0 && readyScrollLrcIndex != _readyScrollLrcIndex && ((currentLrcIndex < 0 || currentLrcIndex >= currentMusic.lrcText.Length) ? float.MaxValue : currentMusic.lineTime[currentLrcIndex]) >= AnimatorTransitionTime)
+                    {
+                        lyricAnimator.SetBool("Scroll", true);
+                        lyricAnimator.Play("Scroll", 0, 0);
+                    }
+                    if (_readyScrollLrcIndex >= 0) readyScrollLrcIndex = _readyScrollLrcIndex;
+                    if (_currentLrcIndex >= 0) currentLrcIndex = _currentLrcIndex;
                 }
                 else
                 {
@@ -315,13 +257,6 @@ namespace UdonLab.Lyric
                 }
             }
         }
-        // void LateUpdate()
-        // {
-        //     if (!isPlaying || currentMusicIndex == -1) return;
-        //     if (audioSource.time < lyricReader._musicLrcs[currentMusicIndex].audioClip.length - 0.1f)
-        //     {
-        //     }
-        // }
         [NonSerialized] public int PlayInt_int = -1;
         public void PlayInt()
         {
@@ -353,11 +288,11 @@ namespace UdonLab.Lyric
             // switchLyricTextIndex = defaultSwitchLyricTextIndex;
             for (int i = 0; i < lyricTexts.Length; i++)
             {
-                lyricTexts[i].text = lyricReader.GetLyricTextOffset(currentMusic, 0, i - lyricTextIndex);
+                lyricTexts[i].text = currentMusic.GetLyricTextOffset(0, i - lyricTextIndex);
             }
             // currentLrcText = lyricReader.GetLyricTextOffset(currentMusic, 0, 0);
-            readyScrollLrcIndex = lyricReader.GetLyricIndex(currentMusic, AnimatorTransitionTime);
-            currentLrcIndex = lyricReader.GetLyricIndex(currentMusic, 0);
+            readyScrollLrcIndex = currentMusic.GetLyricIndex(AnimatorTransitionTime);
+            currentLrcIndex = currentMusic.GetLyricIndex(0);
             // switchLrcText = lyricReader.GetLyricTextOffset(music, AnimatorTransitionTime, defaultSwitchLyricTextIndex - defaultLyricTextIndex);
             // Debug.Log($"Play: {switchLrcText}");
             if (playerUI != null)
@@ -454,11 +389,16 @@ namespace UdonLab.Lyric
                 audioSource.Pause();
             }
         }
+        public void WaitLyricAnimation()
+        {
+            lyricAnimator.SetBool("Scroll", false);
+            lyricAnimator.Play("Wait");
+        }
         public void Stop()
         {
             isPlaying = false;
             isPause = false;
-            lyricAnimator.SetBool("Scroll", false);
+            lyricAnimator.Play("Wait");
             if (audioSource != null)
             {
                 audioSource.Stop();
@@ -496,5 +436,6 @@ namespace UdonLab.Lyric
             }
             Play();
         }
+        public override void OnVideoPlay() => Stop();
     }
 }

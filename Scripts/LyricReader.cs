@@ -2,6 +2,7 @@
 using System;
 using UdonSharp;
 using UnityEngine;
+using VRC.SDK3.Data;
 using VRC.SDKBase;
 using VRC.Udon;
 
@@ -17,74 +18,21 @@ namespace UdonLab.Lyric
                 return musicLrcs;
             }
         }
-        // /// <summary>
-        // /// lrc文件
-        // /// </summary>
-        // [Header("txt 结尾的歌词格式文件")]
-        // [SerializeField] private TextAsset[] lrcFiles;
-        // /// <summary>
-        // /// 音频
-        // /// </summary>
-        // [Header("音频")]
-        // [SerializeField] public AudioClip[] audioClips;
-        // /// <summary>
-        // /// 歌词文本
-        // /// </summary>
-        // [HideInInspector] private string[][] lrcText;
-        // /// <summary>
-        // /// 歌词时间
-        // /// </summary>
-        // [HideInInspector] private float[][] lrcTime;
-        // /// <summary>
-        // /// 偏移
-        // /// </summary>
-        // [SerializeField] private float[] offsets;
-        // /// <summary>
-        // /// 歌曲信息
-        // /// </summary>
-        // [HideInInspector] private string[][] lyricInfo;
-        //  = new string[][] {
-        //         // 歌曲：
-        //         "",
-        //         // 歌手：
-        //         "",
-        //         // 专辑：
-        //         "",
-        //         // 作词：
-        //         "",
-        //         // 歌词：
-        //         "",
-        //         // 时长：
-        //         "",
-        //     };
         void Start()
         {
             for (int i = 0; i < musicLrcs.Length; i++)
             {
                 if (musicLrcs[i].lrcText.Length == 0 || musicLrcs[i].lrcTime.Length == 0 || musicLrcs[i].lyricInfo.Length == 0)
-                    ReadLrcFile(musicLrcs[i]);
+                    ReadLrcFile(ref musicLrcs[i]);
             }
-            // if (lrcText.Length == 0 || lrcTime.Length == 0 || offsets.Length == 0 || lyricInfo.Length == 0)
-            // {
-            //     lrcText = new string[lrcFiles.Length][];
-            //     lrcTime = new float[lrcFiles.Length][];
-            //     offsets = new float[lrcFiles.Length];
-            //     lyricInfo = new string[lrcFiles.Length][];
-            //     for (int i = 0; i < lrcFiles.Length; i++)
-            //     {
-            //         ReadLrcFile(i);
-            //     }
-            // }
         }
-        void ReadLrcFile(MusicLrc musicLrc)
-        // void ReadLrcFile(int index)
+        public static void ReadLrcFile(ref MusicLrc musicLrc)
         {
             var _lrcFile = musicLrc.lrcFile;
-            // var _lrcFile = lrcFiles[index];
             if (_lrcFile == null)
                 return;
-            var _lrcTime = new float[0];
-            var _lrcText = new string[0];
+            var _lrcTime = new DataList();
+            var _lrcText = new DataList();
             var _offset = 0f;
             var _lyricInfo = new string[] {
                 // 歌曲：
@@ -105,7 +53,7 @@ namespace UdonLab.Lyric
             {
                 lines = _lrcFile.text.Split(new string[] { "\r\n" }, StringSplitOptions.None);
             }
-            float[] times = new float[0];
+            var times = new DataList();
             string lyric = "";
             for (int i = 0; i < lines.Length; i++)
             {
@@ -118,11 +66,14 @@ namespace UdonLab.Lyric
 
                 if (line.StartsWith("["))
                 {
-                    for (int j = 0; j < times.Length; j++)
+                    for (int j = 0; j < times.Count; j++)
                     {
-                        int _index = floatArrayFindMax(_lrcTime, times[j]);
-                        _lrcTime = floatArrayAddIndex(_lrcTime, times[j], _index);
-                        _lrcText = stringArrayAddIndex(_lrcText, lyric, _index);
+                        var time = times[j].Float;
+                        int _index = floatArrayFindMax(_lrcTime, time);
+                        // _lrcTime = floatArrayAddIndex(_lrcTime, time, _index);
+                        _lrcTime.Insert(_index, time);
+                        // _lrcText = stringArrayAddIndex(_lrcText, lyric, _index);
+                        _lrcText.Insert(_index, lyric);
                     }
                     if (line.Length > 1 && char.IsDigit(line[1]))
                     {
@@ -140,7 +91,7 @@ namespace UdonLab.Lyric
                         // [00:00.00 [00:00.00 歌词
                         // if (timeAndLyric.Length > 1)
                         // {
-                        times = new float[0];
+                        times = new DataList();
                         lyric = "";
                         for (int j = 0; j < timeAndLyric.Length; j++)
                         {
@@ -154,7 +105,8 @@ namespace UdonLab.Lyric
                                 float time = stringTimeToFloat(timeAndLyric[j].Trim().Substring(1));
                                 if (time != -1)
                                 {
-                                    times = floatArrayAddIndex(times, time, floatArrayFindMax(times, time));
+                                    // times = floatArrayAddIndex(times, time, floatArrayFindMax(times, time));
+                                    times.Insert(floatArrayFindMax(times, time), time);
                                 }
                             }
                             else
@@ -162,7 +114,7 @@ namespace UdonLab.Lyric
                             {
                                 lyric += timeAndLyric[j].Trim();
                             }
-                            if (times.Length == 1 && timeAndLyric.Length == 1)
+                            if (times.Count == 1 && timeAndLyric.Length == 1)
                             {
                                 lyric = "";
                             }
@@ -239,28 +191,43 @@ namespace UdonLab.Lyric
                 else
                 {
                     // 换行歌词
-                    if (times.Length > 0 && lines[i] != "")
+                    if (times.Count > 0 && lines[i] != "")
                     {
                         lyric += "\n" + line;
                     }
                 }
             }
-            for (int j = 0; j < times.Length; j++)
+            for (int j = 0; j < times.Count; j++)
             {
-                int _index = floatArrayFindMax(_lrcTime, times[j]);
-                _lrcTime = floatArrayAddIndex(_lrcTime, times[j], _index);
-                _lrcText = stringArrayAddIndex(_lrcText, lyric, _index);
+                var time = times[j].Float;
+                int _index = floatArrayFindMax(_lrcTime, time);
+                // _lrcTime = floatArrayAddIndex(_lrcTime, times[j], _index);
+                _lrcTime.Insert(_index, time);
+                // _lrcText = stringArrayAddIndex(_lrcText, lyric, _index);
+                _lrcText.Insert(_index, lyric);
             }
             // lrcTime[index] = _lrcTime;
             // lrcText[index] = _lrcText;
             // offsets[index] = _offset;
             // lyricInfo[index] = _lyricInfo;
-            musicLrc.lrcTime = _lrcTime;
-            musicLrc.lrcText = _lrcText;
+            // 歌词时长
+            var _lineTime = new DataList();
+            for (int i = 0; i < _lrcTime.Count; i++)
+            {
+                if (1 + i >= _lrcTime.Count)
+                {
+                    _lineTime.Add(float.MaxValue);
+                    break;
+                }
+                _lineTime.Add(_lrcTime[i + 1].Float - _lrcTime[i].Float);
+            }
+            musicLrc.lrcTime = DataListToArrayFloat(_lrcTime);
+            musicLrc.lineTime = DataListToArrayFloat(_lineTime);
+            musicLrc.lrcText = DataListToArrayString(_lrcText);
             musicLrc.offset = _offset;
             musicLrc.lyricInfo = _lyricInfo;
         }
-        float stringTimeToFloat(string value)
+        static float stringTimeToFloat(string value)
         {
             string[] time = value.Split(':');
             // [01:02.03]
@@ -299,7 +266,7 @@ namespace UdonLab.Lyric
             }
             return -1;
         }
-        int stringArrayIndexOf(string[] array, string value)
+        static int stringArrayIndexOf(string[] array, string value)
         {
             for (int i = 0; i < array.Length; i++)
             {
@@ -310,14 +277,14 @@ namespace UdonLab.Lyric
             }
             return -1;
         }
-        string[] stringArrayAdd(string[] array, string value)
+        static string[] stringArrayAdd(string[] array, string value)
         {
             string[] newArray = new string[array.Length + 1];
             array.CopyTo(newArray, 0);
             newArray[array.Length] = value;
             return newArray;
         }
-        string[] stringArrayAddIndex(string[] array, string value, int index)
+        static string[] stringArrayAddIndex(string[] array, string value, int index)
         {
             string[] newArray = new string[array.Length + 1];
             for (int i = 0; i < index; i++)
@@ -331,7 +298,7 @@ namespace UdonLab.Lyric
             }
             return newArray;
         }
-        string[] stringArrayRemove(string[] array, string value)
+        static string[] stringArrayRemove(string[] array, string value)
         {
             string[] newArray = new string[array.Length - 1];
             int index = stringArrayIndexOf(array, value);
@@ -349,18 +316,7 @@ namespace UdonLab.Lyric
             }
             return newArray;
         }
-        // int intArrayIndexOf(int[] array, int value)
-        // {
-        //     for (int i = 0; i < array.Length; i++)
-        //     {
-        //         if (array[i] == value)
-        //         {
-        //             return i;
-        //         }
-        //     }
-        //     return -1;
-        // }
-        float[] floatArrayAddIndex(float[] array, float _number, int index)
+        static float[] floatArrayAddIndex(float[] array, float _number, int index)
         {
             float[] newArray = new float[array.Length + 1];
             for (int i = 0; i < index; i++)
@@ -374,33 +330,13 @@ namespace UdonLab.Lyric
             }
             return newArray;
         }
-        // int[] intArrayAdd(int[] array, int _number)
-        // {
-        //     int[] newArray = new int[array.Length + 1];
-        //     array.CopyTo(newArray, 0);
-        //     newArray[array.Length] = _number;
-        //     return newArray;
-        // }
-        // int[] intArrayRemove(int[] array, int _number)
-        // {
-        //     int[] newArray = new int[array.Length - 1];
-        //     int index = intArrayIndexOf(array, _number);
-        //     if (index == -1)
-        //     {
-        //         return array;
-        //     }
-        //     for (int i = 0; i < index; i++)
-        //     {
-        //         newArray[i] = array[i];
-        //     }
-        //     for (int i = index + 1; i < array.Length; i++)
-        //     {
-        //         newArray[i - 1] = array[i];
-        //     }
-        //     return newArray;
-        // }
-        // 在int数组中从0开始查找比number大的最小值
-        int floatArrayFindMax(float[] array, float number)
+        /// <summary>
+        /// 在int数组中从0开始查找比number大的最小值
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="number"></param>
+        /// <returns></returns>
+        static int floatArrayFindMax(float[] array, float number)
         {
             for (int i = 0; i < array.Length; i++)
             {
@@ -412,6 +348,42 @@ namespace UdonLab.Lyric
             return 0;
         }
         /// <summary>
+        /// 在int数组中从0开始查找比number大的最小值
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="number"></param>
+        /// <returns></returns>
+        static int floatArrayFindMax(DataList array, float number)
+        {
+            for (int i = 0; i < array.Count; i++)
+            {
+                var data = array[i].Float;
+                if (data > number)
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+        static float[] DataListToArrayFloat(DataList array)
+        {
+            float[] newArray = new float[array.Count];
+            for (int i = 0; i < array.Count; i++)
+            {
+                newArray[i] = array[i].Float;
+            }
+            return newArray;
+        }
+        static string[] DataListToArrayString(DataList array)
+        {
+            string[] newArray = new string[array.Count];
+            for (int i = 0; i < array.Count; i++)
+            {
+                newArray[i] = array[i].String;
+            }
+            return newArray;
+        }
+        /// <summary>
         /// 获取歌词文本
         /// </summary>
         /// <param name="_index"></param>
@@ -420,117 +392,7 @@ namespace UdonLab.Lyric
         public string GetLyricTextIndex(int _index, float time)
         {
             if (musicLrcs.Length <= _index) return "";
-            return GetLyricText(musicLrcs[_index], time);
-            // if (lrcText.Length <= _index || lrcTime.Length <= _index || offsets.Length <= _index) return "";
-            // time = time + offsets[_index];
-            // var _lrcTime = lrcTime[_index];
-            // var _lrcText = lrcText[_index];
-            // for (int i = 0; i < _lrcTime.Length; i++)
-            // {
-            //     // 当前时间大于等于当前行歌词时间，小于下一行歌词时间
-            //     if (time >= _lrcTime[i] && (i == _lrcTime.Length - 1 || time < _lrcTime[i + 1]))
-            //     {
-            //         return _lrcText[i];
-            //     }
-            // }
-            // return "";
-        }
-        /// <summary>
-        /// 获取歌词文本
-        /// </summary>
-        /// <param name="musicLrc"></param>
-        /// <param name="time"></param>
-        /// <returns></returns>
-        public string GetLyricText(MusicLrc musicLrc, float time)
-        {
-            if (musicLrc.lrcTime.Length == 0 && musicLrc.lrcFile != null) ReadLrcFile(musicLrc);
-            var index = GetLyricIndex(musicLrc, time);
-            if (index < 0) return "";
-            return musicLrc.lrcText[index];
-            // time = time + musicLrc.offset;
-            // for (int i = 0; i < musicLrc.lrcTime.Length; i++)
-            // {
-            //     // 当前时间大于等于当前行歌词时间，小于下一行歌词时间
-            //     if (time >= musicLrc.lrcTime[i] && (i == musicLrc.lrcTime.Length - 1 || time < musicLrc.lrcTime[i + 1]))
-            //     {
-            //         return musicLrc.lrcText[i];
-            //     }
-            // }
-            // return "";
-        }
-        /// <summary>
-        /// 获取当前时间的上几句或下几句歌词
-        /// </summary>
-        /// <param name="musicLrc"></param>
-        /// <param name="time"></param>
-        /// <param name="offset"></param>
-        /// <returns></returns>
-        // public string GetLyricTextOffset(int index, float time, int offset)
-        public string GetLyricTextOffset(MusicLrc musicLrc, float time, int offset)
-        {
-            if (musicLrc.lrcTime.Length == 0 && musicLrc.lrcFile != null) ReadLrcFile(musicLrc);
-            var index = GetLyricIndex(musicLrc, time);
-            if (index == -2) index = musicLrc.lrcTime.Length;
-            if (index + offset < 0 || index + offset >= musicLrc.lrcTime.Length)
-            {
-                return "";
-            }
-            else
-            {
-                return musicLrc.lrcText[index + offset];
-            }
-
-            // time = time + musicLrc.offset;
-            // for (int i = 0; i < musicLrc.lrcTime.Length; i++)
-            // {
-            //     // 当前时间大于等于当前行歌词时间，小于下一行歌词时间
-            //     if (time >= musicLrc.lrcTime[i] && (i == musicLrc.lrcTime.Length - 1 || time < musicLrc.lrcTime[i + 1]))
-            //     {
-            //         if (i + offset >= 0 && i + offset < musicLrc.lrcTime.Length)
-            //         {
-            //             return musicLrc.lrcText[i + offset];
-            //         }
-            //         else
-            //         {
-            //             return "";
-            //         }
-            //     }
-            // }
-
-            // time = time + offsets[index];
-            // var _lrcTime = lrcTime[index];
-            // var _lrcText = lrcText[index];
-            // for (int i = 0; i < _lrcTime.Length; i++)
-            // {
-            //     // 当前时间大于等于当前行歌词时间，小于下一行歌词时间
-            //     if (time >= _lrcTime[i] && (i == _lrcTime.Length - 1 || time < _lrcTime[i + 1]))
-            //     {
-            //         if (i + offset >= 0 && i + offset < _lrcTime.Length)
-            //         {
-            //             return _lrcText[i + offset];
-            //         }
-            //         else
-            //         {
-            //             return "";
-            //         }
-            //     }
-            // }
-            // return "";
-        }
-        public int GetLyricIndex(MusicLrc musicLrc, float time)
-        {
-            if (musicLrc.lrcTime.Length == 0 && musicLrc.lrcFile != null) ReadLrcFile(musicLrc);
-            time = time + musicLrc.offset;
-            if (time < musicLrc.lrcTime[0]) return -1;
-            for (int i = 0; i < musicLrc.lrcTime.Length; i++)
-            {
-                // 当前时间大于等于当前行歌词时间，小于下一行歌词时间
-                if (time >= musicLrc.lrcTime[i] && (i == musicLrc.lrcTime.Length - 1 || time < musicLrc.lrcTime[i + 1]))
-                {
-                    return i;
-                }
-            }
-            return -2;
+            return musicLrcs[_index].GetLyricText(time);
         }
     }
 }

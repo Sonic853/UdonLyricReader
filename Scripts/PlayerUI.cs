@@ -75,12 +75,12 @@ namespace UdonLab.Lyric
                     if (_text != null) _text.text = _musicName;
                     var _udonSharpBehaviour = (UdonSharpBehaviour)item.GetComponent(typeof(UdonSharpBehaviour));
                     if (_udonSharpBehaviour != null
-                    && _udonSharpBehaviour.GetUdonTypeName() == "UdonLab.Toolkit.UdonSendFunctionsWithInt")
+                    && _udonSharpBehaviour.GetUdonTypeName() == "Sonic853.Udon.SendFunction.UdonSendFunctionsWithInt")
                     {
-                        var _udonInteractFunctionWithInt = (UdonLab.Toolkit.UdonSendFunctionsWithInt)_udonSharpBehaviour;
+                        var _udonInteractFunctionWithInt = (Sonic853.Udon.SendFunction.UdonSendFunctionsWithInt)_udonSharpBehaviour;
                         _udonInteractFunctionWithInt.udonBehaviours = new UdonBehaviour[] { (UdonBehaviour)lyricPlayer.GetComponent(typeof(UdonBehaviour)) };
-                        _udonInteractFunctionWithInt.functionNames = new string[] { "PlayInt" };
-                        _udonInteractFunctionWithInt.valueNames = new string[] { "PlayInt_int" };
+                        _udonInteractFunctionWithInt.functionNames = new string[] { nameof(lyricPlayer.PlayInt) };
+                        _udonInteractFunctionWithInt.valueNames = new string[] { nameof(lyricPlayer.PlayInt_int) };
                         _udonInteractFunctionWithInt.values = new int[] { i };
                     }
                     var _time = (Text)item.transform.Find("Time").GetComponent(typeof(Text));
@@ -114,7 +114,7 @@ namespace UdonLab.Lyric
         {
             if (musicSlider != null && lyricPlayer.audioSource != null)
             {
-                musicSlider.value = lyricPlayer.audioSource.time;
+                musicSlider.SetValueWithoutNotify(lyricPlayer.audioSource.time);
             }
             if (playTimeText != null && lyricPlayer.audioSource != null)
             {
@@ -160,6 +160,7 @@ namespace UdonLab.Lyric
             if (musicSlider != null && lyricPlayer.audioSource != null)
             {
                 lyricPlayer.audioSource.time = musicSlider.value;
+                lyricPlayer.WaitLyricAnimation();
             }
         }
         public void SetPlayMode()
