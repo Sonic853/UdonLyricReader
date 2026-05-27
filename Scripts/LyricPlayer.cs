@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using VRC.SDKBase;
 using VRC.Udon;
 
-namespace UdonLab.Lyric
+namespace Sonic853.Lyric
 {
     public class LyricPlayer : UdonSharpBehaviour
     {
@@ -47,7 +47,7 @@ namespace UdonLab.Lyric
         /// <summary>
         /// 显示歌词的 Text 索引，-1 表示未初始化，-1 以外表示当前显示的 Text 索引
         /// </summary>
-        [NonSerialized] private int lyricTextIndex = -1;
+        [SerializeField] private int lyricTextIndex = -1;
         // /// <summary>
         // /// 默认显示歌词的 Text 索引，-1 表示未初始化，-1 以外表示当前显示的 Text 索引
         // /// </summary>
@@ -228,8 +228,7 @@ namespace UdonLab.Lyric
                 {
                     if (_currentLrcIndex >= 0 && currentLrcIndex != _currentLrcIndex)
                     {
-                        lyricAnimator.SetBool("Scroll", false);
-                        lyricAnimator.Play("Wait");
+                        WaitLyricAnimation();
                         for (int i = 0; i < lyricTexts.Length; i++)
                         {
                             if (i == lyricTextIndex) continue;
@@ -239,10 +238,23 @@ namespace UdonLab.Lyric
                         lyricTexts[lyricTextIndex].text = _lyricText;
                         Debug.Log($"LateUpdate Switch: {lyricTexts[lyricTextIndex].text}");
                     }
-                    if (!lyricAnimator.GetBool("Scroll") && _readyScrollLrcIndex >= 0 && readyScrollLrcIndex != _readyScrollLrcIndex && ((currentLrcIndex < 0 || currentLrcIndex >= currentMusic.lrcText.Length) ? float.MaxValue : currentMusic.lineTime[currentLrcIndex]) >= AnimatorTransitionTime)
+                    if (!lyricAnimator.GetBool("Scroll") && _readyScrollLrcIndex >= 0 && readyScrollLrcIndex != _readyScrollLrcIndex)
                     {
-                        lyricAnimator.SetBool("Scroll", true);
-                        lyricAnimator.Play("Scroll", 0, 0);
+                        var currentLrcTime = (currentLrcIndex < 0 || currentLrcIndex >= currentMusic.lrcText.Length) ? float.MaxValue : currentMusic.lineTime[currentLrcIndex];
+                        if (currentLrcTime >= AnimatorTransitionTime)
+                        {
+                            lyricAnimator.SetFloat("Speed", 1f);
+                            lyricAnimator.SetBool("Scroll", true);
+                            lyricAnimator.Play("Scroll", 0, 0);
+                        }
+                        else
+                        {
+                            // 根据 AnimatorTransitionTime 和 currentLrcTime 调整播放速度
+                            var speed = AnimatorTransitionTime / (currentLrcTime <= 0 ? 0.01f : currentLrcTime);
+                            lyricAnimator.SetFloat("Speed", speed);
+                            lyricAnimator.SetBool("Scroll", true);
+                            lyricAnimator.Play("Scroll", 0, 0);
+                        }
                     }
                     if (_readyScrollLrcIndex >= 0) readyScrollLrcIndex = _readyScrollLrcIndex;
                     if (_currentLrcIndex >= 0) currentLrcIndex = _currentLrcIndex;
@@ -391,6 +403,7 @@ namespace UdonLab.Lyric
         }
         public void WaitLyricAnimation()
         {
+            lyricAnimator.SetFloat("Speed", 1f);
             lyricAnimator.SetBool("Scroll", false);
             lyricAnimator.Play("Wait");
         }
@@ -398,7 +411,7 @@ namespace UdonLab.Lyric
         {
             isPlaying = false;
             isPause = false;
-            lyricAnimator.Play("Wait");
+            WaitLyricAnimation();
             if (audioSource != null)
             {
                 audioSource.Stop();

@@ -6,7 +6,7 @@ using VRC.SDK3.Data;
 using VRC.SDKBase;
 using VRC.Udon;
 
-namespace UdonLab.Lyric
+namespace Sonic853.Lyric
 {
     public class LyricReader : UdonSharpBehaviour
     {

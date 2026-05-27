@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace UdonLab.Lyric.Editors
+namespace Sonic853.Lyric.Editors
 {
     public class SerializedObjectKit
     {

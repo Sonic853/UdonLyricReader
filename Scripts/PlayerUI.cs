@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using VRC.SDKBase;
 using VRC.Udon;
 
-namespace UdonLab.Lyric
+namespace Sonic853.Lyric
 {
     public class PlayerUI : UdonSharpBehaviour
     {

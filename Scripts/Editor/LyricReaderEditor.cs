@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System;
 
-namespace UdonLab.Lyric.Editors
+namespace Sonic853.Lyric.Editors
 {
     [CustomEditor(typeof(LyricReader))]
     public class LyricReaderEditor : Editor
