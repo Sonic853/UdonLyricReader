@@ -177,9 +177,9 @@ namespace Sonic853.Lyric
         }
         void Update()
         {
-            if (!isPlaying || currentMusicIndex == -1 || currentMusicIndex >= lyricReader._musicLrcs.Length) return;
+            if (!isPlaying || currentMusicIndex == -1 || currentMusicIndex >= lyricReader.MusicLrcs.Length) return;
             var audioSourceTime = audioSource.time;
-            if (audioSourceTime >= lyricReader._musicLrcs[currentMusicIndex].audioClip.length - 0.1f)
+            if (audioSourceTime >= lyricReader.MusicLrcs[currentMusicIndex].audioClip.length - 0.1f)
             {
                 switch (playMode)
                 {
@@ -272,7 +272,7 @@ namespace Sonic853.Lyric
         [NonSerialized] public int PlayInt_int = -1;
         public void PlayInt()
         {
-            if (PlayInt_int < 0 || PlayInt_int >= lyricReader._musicLrcs.Length)
+            if (PlayInt_int < 0 || PlayInt_int >= lyricReader.MusicLrcs.Length)
             {
                 return;
             }
@@ -281,7 +281,7 @@ namespace Sonic853.Lyric
         }
         int _Play()
         {
-            _currentMusic = lyricReader._musicLrcs[currentMusicIndex];
+            _currentMusic = lyricReader.MusicLrcs[currentMusicIndex];
             if (currentMusic == null)
             {
                 Debug.LogError("Music is null");
@@ -333,7 +333,7 @@ namespace Sonic853.Lyric
                 Debug.LogError("AudioSource is null");
                 return -1;
             }
-            if (currentMusicIndex < 0 || currentMusicIndex >= lyricReader._musicLrcs.Length)
+            if (currentMusicIndex < 0 || currentMusicIndex >= lyricReader.MusicLrcs.Length)
             {
                 switch (playMode)
                 {
@@ -346,10 +346,10 @@ namespace Sonic853.Lyric
                         break;
                     case 2:
                         {
-                            var _currentMusicIndex = UnityEngine.Random.Range(0, lyricReader._musicLrcs.Length);
-                            while (lyricReader._musicLrcs.Length > 1 && currentMusicIndex == _currentMusicIndex)
+                            var _currentMusicIndex = UnityEngine.Random.Range(0, lyricReader.MusicLrcs.Length);
+                            while (lyricReader.MusicLrcs.Length > 1 && currentMusicIndex == _currentMusicIndex)
                             {
-                                _currentMusicIndex = UnityEngine.Random.Range(0, lyricReader._musicLrcs.Length);
+                                _currentMusicIndex = UnityEngine.Random.Range(0, lyricReader.MusicLrcs.Length);
                             }
                             currentMusicIndex = _currentMusicIndex;
                         }
@@ -376,7 +376,7 @@ namespace Sonic853.Lyric
             {
                 if (playMode == 2)
                 {
-                    currentMusicIndex = UnityEngine.Random.Range(0, lyricReader._musicLrcs.Length);
+                    currentMusicIndex = UnityEngine.Random.Range(0, lyricReader.MusicLrcs.Length);
                 }
             }
             return _Play();
@@ -430,7 +430,7 @@ namespace Sonic853.Lyric
                 Stop();
             }
             if (playMode != 2) currentMusicIndex++;
-            if (currentMusicIndex >= lyricReader._musicLrcs.Length)
+            if (currentMusicIndex >= lyricReader.MusicLrcs.Length)
             {
                 currentMusicIndex = 0;
             }
@@ -445,7 +445,7 @@ namespace Sonic853.Lyric
             if (playMode != 2) currentMusicIndex--;
             if (currentMusicIndex < 0)
             {
-                currentMusicIndex = lyricReader._musicLrcs.Length - 1;
+                currentMusicIndex = lyricReader.MusicLrcs.Length - 1;
             }
             Play();
         }

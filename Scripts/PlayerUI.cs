@@ -57,7 +57,7 @@ namespace Sonic853.Lyric
             }
             else
             {
-                var musicLrcs = lyricPlayer.lyricReader._musicLrcs;
+                var musicLrcs = lyricPlayer.lyricReader.MusicLrcs;
                 for (int i = 0; i < musicLrcs.Length; i++)
                 {
                     if (musicLrcs[i] == null) continue;
@@ -77,7 +77,7 @@ namespace Sonic853.Lyric
                     if (_udonSharpBehaviour != null
                     && _udonSharpBehaviour.GetUdonTypeName() == "Sonic853.Udon.SendFunction.UdonSendFunctionsWithInt")
                     {
-                        var _udonInteractFunctionWithInt = (Sonic853.Udon.SendFunction.UdonSendFunctionsWithInt)_udonSharpBehaviour;
+                        var _udonInteractFunctionWithInt = (Udon.SendFunction.UdonSendFunctionsWithInt)_udonSharpBehaviour;
                         _udonInteractFunctionWithInt.udonBehaviours = new UdonBehaviour[] { (UdonBehaviour)lyricPlayer.GetComponent(typeof(UdonBehaviour)) };
                         _udonInteractFunctionWithInt.functionNames = new string[] { nameof(lyricPlayer.PlayInt) };
                         _udonInteractFunctionWithInt.valueNames = new string[] { nameof(lyricPlayer.PlayInt_int) };

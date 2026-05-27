@@ -20,7 +20,7 @@ MonoBehaviour:
   compiledVersion: 2
   behaviourSyncMode: 0
   hasInteractEvent: 0
-  scriptID: -7732647485096491039
+  scriptID: -5195510735923555634
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -61,7 +61,7 @@ MonoBehaviour:
       Data: 3|System.RuntimeType, mscorlib
     - Name: 
       Entry: 1
-      Data: UdonLab.Lyric.LyricPlayer, Assembly-CSharp
+      Data: Sonic853.Lyric.LyricPlayer, Assembly-CSharp
     - Name: 
       Entry: 8
       Data: 

@@ -5,12 +5,17 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Sonic853.Lyric.Editors
 {
     [CustomEditor(typeof(LyricReader))]
     public class LyricReaderEditor : Editor
     {
+        static readonly string patternTime = @"\[(\d{2}:\d{2}(?:[.:]\d{2,3})?)\]";
+        static readonly Regex regexTime = new(patternTime);
+        static readonly string patternMeta = @"^\[(\w+):(.*)\]$";
+        static readonly Regex regexMeta = new(patternMeta);
         public override VisualElement CreateInspectorGUI()
         {
             var root = new VisualElement();
@@ -229,7 +234,10 @@ namespace Sonic853.Lyric.Editors
             for (int i = 0; i < musicLrcs.Count; i++)
             {
                 var musicLrc = musicLrcs[i];
-                ReadLrcFile(musicLrc.lrcFile, out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
+                var _lrcFile = musicLrc.lrcFile;
+                var _lrcString = musicLrc.lrcString;
+                if (string.IsNullOrEmpty(_lrcString) && _lrcFile != null) _lrcString = _lrcFile.text;
+                ReadLrcFile(_lrcString, out var _lrcText, out var _lrcTime, out var _offset, out var _lyricInfo, out var _hasLyric);
                 var _lineTime = new List<float>();
                 for (int j = 0; j < _lrcTime.Count; j++)
                 {
@@ -253,7 +261,7 @@ namespace Sonic853.Lyric.Editors
                 }
             }
         }
-        static void ReadLrcFile(TextAsset _lrcFile, out List<string> _lrcText, out List<float> _lrcTime, out float _offset, out string[] _lyricInfo, out bool _hasLyric)
+        static void ReadLrcFile(string _lrcString, out List<string> _lrcText, out List<float> _lrcTime, out float _offset, out string[] _lyricInfo, out bool _hasLyric)
         {
             _hasLyric = false;
             _lrcText = new List<string>();
@@ -273,15 +281,15 @@ namespace Sonic853.Lyric.Editors
                 // 时长：
                 "",
             };
-            if (_lrcFile == null)
+            if (string.IsNullOrEmpty(_lrcString))
             {
                 return;
             }
             _hasLyric = true;
-            string[] lines = _lrcFile.text.Split('\n');
-            if (_lrcFile.text.Contains("\r\n"))
+            string[] lines = _lrcString.Split('\n');
+            if (_lrcString.Contains("\r\n"))
             {
-                lines = _lrcFile.text.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                lines = _lrcString.Split(new string[] { "\r\n" }, StringSplitOptions.None);
             }
             var times = new List<float>();
             string lyric = "";
@@ -310,120 +318,95 @@ namespace Sonic853.Lyric.Editors
                             _lrcText.Insert(_index, lyric);
                         }
                     }
-                    if (line.Length > 1 && char.IsDigit(line[1]))
+                    var matches = regexTime.Matches(line);
+                    if (matches.Count > 0)
                     {
-                        // 分离时间和歌词
-                        // [00:00.00]歌词
-                        // [00:00]歌词
-                        // [00:00:00]歌词
-                        // [00:00.00][00:00.00]歌词
-                        // 一行歌词可能有多个时间
-                        string[] timeAndLyric = line.Split(']');
-                        // [00:00.00 歌词
-                        // [00:00 歌词
-                        // [00:00:00 歌词
-                        // [00:00.00 [00:00.00 歌词
                         times.Clear();
-                        lyric = "";
-                        for (int j = 0; j < timeAndLyric.Length; j++)
+                        lyric = regexTime.Replace(line, "");
+                        foreach (Match match in matches)
                         {
-                            if (timeAndLyric[j].Trim().StartsWith("["))
-                            // [00:00.00
-                            // [00:00
-                            // [00:00:00
-                            // [00:00.0 [00:00.00
+                            var timeStr = match.Groups[1].Value;
+                            var time = StringTimeToFloat(timeStr);
+                            if (time != -1)
                             {
-                                float time = StringTimeToFloat(timeAndLyric[j].Trim()[1..]);
-                                if (time != -1)
+                                int _index = times.FindIndex((x) => x > time);
+                                if (_index == -1)
                                 {
-                                    int _index = times.FindIndex((x) => x > time);
-                                    if (_index == -1)
-                                    {
-                                        times.Add(time);
-                                    }
-                                    else
-                                    {
-                                        times.Insert(_index, time);
-                                    }
+                                    times.Add(time);
                                 }
-                            }
-                            else
-                            // 歌词
-                            {
-                                lyric += timeAndLyric[j].Trim();
-                            }
-                            if (times.Count == 1 && timeAndLyric.Length == 1)
-                            {
-                                lyric = "";
+                                else
+                                {
+                                    times.Insert(_index, time);
+                                }
                             }
                         }
                     }
-                    else switch (true)
+                    matches = regexMeta.Matches(line);
+                    if (matches.Count > 0)
+                    {
+                        foreach (Match match in matches)
                         {
-                            // [ar:歌手名]
-                            case true when line.StartsWith("[ar:"):
-                                {
-                                    _lyricInfo[1] = "歌手：" + line[4..line.LastIndexOf(']')];
-                                }
-                                break;
-                            // [al:专辑]
-                            case true when line.StartsWith("[al:"):
-                                {
-                                    _lyricInfo[2] = "专辑：" + line[4..line.LastIndexOf(']')];
-                                }
-                                break;
-                            // [ti:歌词（歌曲）标题]
-                            case true when line.StartsWith("[ti:"):
-                                {
-                                    _lyricInfo[0] = "歌曲：" + line[4..line.LastIndexOf(']')];
-                                }
-                                break;
-                            // [au:作词]
-                            case true when line.StartsWith("[au:"):
-                                {
-                                    _lyricInfo[3] = "作词：" + line[4..line.LastIndexOf(']')];
-                                }
-                                break;
-                            // [by:LRC 文件的创建者]
-                            case true when line.StartsWith("[by:"):
-                                {
-                                    _lyricInfo[4] = "歌词：" + line[4..line.LastIndexOf(']')];
-                                }
-                                break;
-                            // [length:这首歌有多长]
-                            case true when line.StartsWith("[length:"):
-                                {
-                                    _lyricInfo[5] = "时长：" + line[8..line.LastIndexOf(']')];
-                                }
-                                break;
-                            case true when line.StartsWith("[offset:"):
-                                {
-                                    // +/- 以毫秒为单位的整体时间戳调整，+ 时间上移，- 下移
-                                    string offsetStr = line[8..line.LastIndexOf(']')];
-                                    // [offset:+0]
-                                    if (offsetStr.StartsWith("+"))
+                            var key = match.Groups[1].Value.ToLower();
+                            var value = match.Groups[2].Value;
+                            switch (key)
+                            {
+                                case "ti":
                                     {
-                                        // 解析不报错
-                                        if (float.TryParse(offsetStr[1..], out float offset))
+                                        _lyricInfo[0] = "歌曲：" + value;
+                                    }
+                                    break;
+                                case "ar":
+                                    {
+                                        _lyricInfo[1] = "歌手：" + value;
+                                    }
+                                    break;
+                                case "al":
+                                    {
+                                        _lyricInfo[2] = "专辑：" + value;
+                                    }
+                                    break;
+                                case "au":
+                                    {
+                                        _lyricInfo[3] = "作词：" + value;
+                                    }
+                                    break;
+                                case "by":
+                                    {
+                                        _lyricInfo[4] = "歌词：" + value;
+                                    }
+                                    break;
+                                case "length":
+                                    {
+                                        _lyricInfo[5] = "时长：" + value;
+                                    }
+                                    break;
+                                case "offset":
+                                    {
+                                        string offsetStr = match.Groups[3].Value;
+                                        // [offset:+0]
+                                        if (offsetStr.StartsWith("+"))
                                         {
-                                            _offset = offset / 1000f;
+                                            // 解析不报错
+                                            if (float.TryParse(offsetStr[1..], out float offset))
+                                            {
+                                                _offset = offset / 1000f;
+                                            }
+                                        }
+                                        // [offset:0]
+                                        // [offset:-0]
+                                        else
+                                        {
+                                            // 解析不报错
+                                            if (float.TryParse(offsetStr, out float offset))
+                                            {
+                                                _offset = offset / 1000f;
+                                            }
                                         }
                                     }
-                                    // [offset:0]
-                                    // [offset:-0]
-                                    else
-                                    {
-                                        // 解析不报错
-                                        if (float.TryParse(offsetStr, out float offset))
-                                        {
-                                            _offset = offset / 1000f;
-                                        }
-                                    }
-                                }
-                                break;
-                            default:
-                                break;
+                                    break;
+                            }
                         }
+                    }
                 }
                 else
                 {

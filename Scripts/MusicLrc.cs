@@ -15,6 +15,12 @@ namespace Sonic853.Lyric
         [Header("txt 结尾的歌词格式文件")]
         [SerializeField] public TextAsset lrcFile;
         /// <summary>
+        /// lrc文本
+        /// </summary>
+        [Header("lrc文本")]
+        [TextArea(3, 10)]
+        [SerializeField] public string lrcString;
+        /// <summary>
         /// 音频
         /// </summary>
         [Header("音频")]

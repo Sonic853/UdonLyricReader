@@ -1,5 +1,6 @@
 
 using System;
+using System.Text.RegularExpressions;
 using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Data;
@@ -10,8 +11,12 @@ namespace Sonic853.Lyric
 {
     public class LyricReader : UdonSharpBehaviour
     {
+        static readonly string patternTime = @"\[(\d{2}:\d{2}(?:[.:]\d{2,3})?)\]";
+        static readonly Regex regexTime = new Regex(patternTime);
+        static readonly string patternMeta = @"^\[(\w+):(.*)\]$";
+        static readonly Regex regexMeta = new Regex(patternMeta);
         [SerializeField] private MusicLrc[] musicLrcs;
-        public MusicLrc[] _musicLrcs
+        public MusicLrc[] MusicLrcs
         {
             get
             {
@@ -22,14 +27,16 @@ namespace Sonic853.Lyric
         {
             for (int i = 0; i < musicLrcs.Length; i++)
             {
-                if (musicLrcs[i].lrcText.Length == 0 || musicLrcs[i].lrcTime.Length == 0 || musicLrcs[i].lyricInfo.Length == 0)
-                    ReadLrcFile(ref musicLrcs[i]);
+                var musicLrc = musicLrcs[i];
+                if (musicLrc.lrcText.Length == 0 || musicLrc.lrcTime.Length == 0 || musicLrc.lyricInfo.Length == 0)
+                    ReadLrcFile(ref musicLrc);
             }
         }
         public static void ReadLrcFile(ref MusicLrc musicLrc)
         {
             var _lrcFile = musicLrc.lrcFile;
-            if (_lrcFile == null)
+            var _lrcString = musicLrc.lrcString;
+            if (_lrcFile == null && string.IsNullOrEmpty(_lrcString))
                 return;
             var _lrcTime = new DataList();
             var _lrcText = new DataList();
@@ -48,10 +55,11 @@ namespace Sonic853.Lyric
                 // 时长：
                 "",
             };
-            string[] lines = _lrcFile.text.Split('\n');
-            if (_lrcFile.text.Contains("\r\n"))
+            if (string.IsNullOrEmpty(_lrcString)) _lrcString = _lrcFile.text;
+            string[] lines = _lrcString.Split('\n');
+            if (_lrcString.Contains("\r\n"))
             {
-                lines = _lrcFile.text.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                lines = _lrcString.Split(new string[] { "\r\n" }, StringSplitOptions.None);
             }
             var times = new DataList();
             string lyric = "";
@@ -75,118 +83,87 @@ namespace Sonic853.Lyric
                         // _lrcText = stringArrayAddIndex(_lrcText, lyric, _index);
                         _lrcText.Insert(_index, lyric);
                     }
-                    if (line.Length > 1 && char.IsDigit(line[1]))
+                    var matches = regexTime.Matches(line);
+                    if (matches.Count > 0)
                     {
-                        // 分离时间和歌词
-                        // [00:00.00]歌词
-                        // [00:00.000]歌词
-                        // [00:00]歌词
-                        // [00:00:00]歌词
-                        // [00:00.00][00:00.00]歌词
-                        // 一行歌词可能有多个时间
-                        string[] timeAndLyric = line.Split(']');
-                        // [00:00.00 歌词
-                        // [00:00 歌词
-                        // [00:00:00 歌词
-                        // [00:00.00 [00:00.00 歌词
-                        // if (timeAndLyric.Length > 1)
-                        // {
-                        times = new DataList();
-                        lyric = "";
-                        for (int j = 0; j < timeAndLyric.Length; j++)
+                        times.Clear();
+                        lyric = regexTime.Replace(line, "");
+                        foreach (Match match in matches)
                         {
-                            if (timeAndLyric[j].Trim().StartsWith("["))
-                            // [00:00.00
-                            // [00:00.000
-                            // [00:00
-                            // [00:00:00
-                            // [00:00.00 [00:00.00
+                            var timeStr = match.Groups[1].Value;
+                            var time = stringTimeToFloat(timeStr);
+                            if (time != -1)
                             {
-                                float time = stringTimeToFloat(timeAndLyric[j].Trim().Substring(1));
-                                if (time != -1)
-                                {
-                                    // times = floatArrayAddIndex(times, time, floatArrayFindMax(times, time));
-                                    times.Insert(floatArrayFindMax(times, time), time);
-                                }
-                            }
-                            else
-                            // 歌词
-                            {
-                                lyric += timeAndLyric[j].Trim();
-                            }
-                            if (times.Count == 1 && timeAndLyric.Length == 1)
-                            {
-                                lyric = "";
+                                times.Insert(floatArrayFindMax(times, time), time);
                             }
                         }
-                        // }
                     }
-                    else switch (true)
+                    matches = regexMeta.Matches(line);
+                    if (matches.Count > 0)
+                    {
+                        foreach (Match match in matches)
                         {
-                            // [ar:歌手名]
-                            case true when line.StartsWith("[ar:"):
-                                {
-                                    _lyricInfo[1] = "歌手：" + line.Substring(4, line.LastIndexOf(']') - 4);
-                                }
-                                break;
-                            // [al:专辑]
-                            case true when line.StartsWith("[al:"):
-                                {
-                                    _lyricInfo[2] = "专辑：" + line.Substring(4, line.LastIndexOf(']') - 4);
-                                }
-                                break;
-                            // [ti:歌词（歌曲）标题]
-                            case true when line.StartsWith("[ti:"):
-                                {
-                                    _lyricInfo[0] = "歌曲：" + line.Substring(4, line.LastIndexOf(']') - 4);
-                                }
-                                break;
-                            // [au:作词]
-                            case true when line.StartsWith("[au:"):
-                                {
-                                    _lyricInfo[3] = "作词：" + line.Substring(4, line.LastIndexOf(']') - 4);
-                                }
-                                break;
-                            // [by:LRC 文件的创建者]
-                            case true when line.StartsWith("[by:"):
-                                {
-                                    _lyricInfo[4] = "歌词：" + line.Substring(4, line.LastIndexOf(']') - 4);
-                                }
-                                break;
-                            // [length:这首歌有多长]
-                            case true when line.StartsWith("[length:"):
-                                {
-                                    _lyricInfo[5] = "时长：" + line.Substring(8, line.LastIndexOf(']') - 8);
-                                }
-                                break;
-                            case true when line.StartsWith("[offset:"):
-                                {
-                                    // +/- 以毫秒为单位的整体时间戳调整，+ 时间上移，- 下移
-                                    string offsetStr = line.Substring(8, line.LastIndexOf(']') - 8);
-                                    // [offset:+0]
-                                    if (offsetStr.StartsWith("+"))
+                            var key = match.Groups[1].Value.ToLower();
+                            var value = match.Groups[2].Value;
+                            switch (key)
+                            {
+                                case "ti":
                                     {
-                                        // 解析不报错
-                                        if (float.TryParse(offsetStr.Substring(1), out float offset))
+                                        _lyricInfo[0] = "歌曲：" + value;
+                                    }
+                                    break;
+                                case "ar":
+                                    {
+                                        _lyricInfo[1] = "歌手：" + value;
+                                    }
+                                    break;
+                                case "al":
+                                    {
+                                        _lyricInfo[2] = "专辑：" + value;
+                                    }
+                                    break;
+                                case "au":
+                                    {
+                                        _lyricInfo[3] = "作词：" + value;
+                                    }
+                                    break;
+                                case "by":
+                                    {
+                                        _lyricInfo[4] = "歌词：" + value;
+                                    }
+                                    break;
+                                case "length":
+                                    {
+                                        _lyricInfo[5] = "时长：" + value;
+                                    }
+                                    break;
+                                case "offset":
+                                    {
+                                        string offsetStr = match.Groups[3].Value;
+                                        // [offset:+0]
+                                        if (offsetStr.StartsWith("+"))
                                         {
-                                            _offset = offset / 1000f;
+                                            // 解析不报错
+                                            if (float.TryParse(offsetStr.Substring(1), out float offset))
+                                            {
+                                                _offset = offset / 1000f;
+                                            }
+                                        }
+                                        // [offset:0]
+                                        // [offset:-0]
+                                        else
+                                        {
+                                            // 解析不报错
+                                            if (float.TryParse(offsetStr, out float offset))
+                                            {
+                                                _offset = offset / 1000f;
+                                            }
                                         }
                                     }
-                                    // [offset:0]
-                                    // [offset:-0]
-                                    else
-                                    {
-                                        // 解析不报错
-                                        if (float.TryParse(offsetStr, out float offset))
-                                        {
-                                            _offset = offset / 1000f;
-                                        }
-                                    }
-                                }
-                                break;
-                            default:
-                                break;
+                                    break;
+                            }
                         }
+                    }
                 }
                 else
                 {
@@ -338,6 +315,7 @@ namespace Sonic853.Lyric
         /// <returns></returns>
         static int floatArrayFindMax(float[] array, float number)
         {
+            if (array.Length == 0) return 0;
             for (int i = 0; i < array.Length; i++)
             {
                 if (array[i] > number)
@@ -345,7 +323,7 @@ namespace Sonic853.Lyric
                     return i;
                 }
             }
-            return 0;
+            return array.Length - 1;
         }
         /// <summary>
         /// 在int数组中从0开始查找比number大的最小值
@@ -355,6 +333,7 @@ namespace Sonic853.Lyric
         /// <returns></returns>
         static int floatArrayFindMax(DataList array, float number)
         {
+            if (array.Count == 0) return 0;
             for (int i = 0; i < array.Count; i++)
             {
                 var data = array[i].Float;
@@ -363,7 +342,7 @@ namespace Sonic853.Lyric
                     return i;
                 }
             }
-            return 0;
+            return array.Count - 1;
         }
         static float[] DataListToArrayFloat(DataList array)
         {
