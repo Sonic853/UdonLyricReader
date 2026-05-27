@@ -11,10 +11,10 @@ namespace Sonic853.Lyric
 {
     public class LyricReader : UdonSharpBehaviour
     {
-        static readonly string patternTime = @"\[(\d{2}:\d{2}(?:[.:]\d{2,3})?)\]";
-        static readonly Regex regexTime = new Regex(patternTime);
-        static readonly string patternMeta = @"^\[(\w+):(.*)\]$";
-        static readonly Regex regexMeta = new Regex(patternMeta);
+        static string PatternTime() => @"\[(\d{2}:\d{2}(?:[.:]\d{2,3})?)\]";
+        static Regex RegexTime() => new Regex(PatternTime());
+        static string PatternMeta() => @"^\[(\w+):(.*)\]$";
+        static Regex RegexMeta() => new Regex(PatternMeta());
         [SerializeField] private MusicLrc[] musicLrcs;
         public MusicLrc[] MusicLrcs
         {
@@ -62,7 +62,9 @@ namespace Sonic853.Lyric
                 lines = _lrcString.Split(new string[] { "\r\n" }, StringSplitOptions.None);
             }
             var times = new DataList();
-            string lyric = "";
+            var lyric = "";
+            var regexTime = RegexTime();
+            var regexMeta = RegexMeta();
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
