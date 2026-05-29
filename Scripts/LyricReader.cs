@@ -217,7 +217,7 @@ namespace Sonic853.Lyric
                 int minute = int.Parse(time[0]);
                 // [01:02.03]
                 // [01:02.003]
-                if (value.Contains("."))
+                if (value.Contains('.'))
                 {
                     // 01
                     // 02.03
