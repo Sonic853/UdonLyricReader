@@ -11,7 +11,7 @@ namespace Sonic853.Lyric
 {
     public class LyricReader : UdonSharpBehaviour
     {
-        static string PatternTime() => @"\[(\d{2}:\d{2}(?:[.:]\d{2,3})?)\]";
+        static string PatternTime() => @"\[(?:(\d{1,}:)?\d{1,}(?:[.:]\d{1,})?)\]";
         static Regex RegexTime() => new Regex(PatternTime());
         static string PatternMeta() => @"^\[(\w+):(.*)\]$";
         static Regex RegexMeta() => new Regex(PatternMeta());
@@ -211,28 +211,33 @@ namespace Sonic853.Lyric
             string[] time = value.Split(':');
             // [01:02.03]
             // [01:02.003]
-            if (time.Length == 2 && value.Contains("."))
-            {
-                // 01
-                // 02.03
-                // 02.003
-                string[] _time = time[1].Split('.');
-                // 02
-                // 03
-                // 003
-                int minute = int.Parse(time[0]);
-                int second = int.Parse(_time[0]);
-                // _time[1] 补齐 3 位
-                int millisecond = int.Parse(_time[1].PadRight(3, '0'));
-                return minute * 60 + second + millisecond / 1000f;
-            }
             // [00:00]
-            else if (time.Length == 2)
+            if (time.Length == 2)
             {
                 int minute = int.Parse(time[0]);
-                int second = int.Parse(time[1]);
-                // return minute * 60 * 1000 + second * 1000;
-                return minute * 60 + second;
+                // [01:02.03]
+                // [01:02.003]
+                if (value.Contains("."))
+                {
+                    // 01
+                    // 02.03
+                    // 02.003
+                    string[] _time = time[1].Split('.');
+                    // 02
+                    // 03
+                    // 003
+                    int second = int.Parse(_time[0]);
+                    // _time[1] 补齐 3 位
+                    int millisecond = int.Parse(_time[1].PadRight(3, '0'));
+                    return minute * 60 + second + millisecond / 1000f;
+                }
+                // [00:00]
+                else
+                {
+                    int second = int.Parse(time[1]);
+                    // return minute * 60 * 1000 + second * 1000;
+                    return minute * 60 + second;
+                }
             }
             // [00:00:00]
             else if (time.Length == 3)
@@ -242,6 +247,17 @@ namespace Sonic853.Lyric
                 int millisecond = int.Parse(time[2].PadRight(3, '0'));
                 // return minute * 60 * 1000 + second * 1000 + millisecond;
                 return minute * 60 + second + millisecond / 1000f;
+            }
+            // [0.000]
+            // [0.00]
+            // [0]
+            else if (time.Length == 1)
+            {
+                string[] _time = time[1].Split('.');
+                int second = int.Parse(_time[0]);
+                // _time[1] 补齐 3 位
+                int millisecond = int.Parse(_time.Length == 2 ? _time[1].PadRight(3, '0') : "000");
+                return second + millisecond / 1000f;
             }
             return -1;
         }
