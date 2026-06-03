@@ -90,8 +90,10 @@ namespace Sonic853.Lyric
                     {
                         times.Clear();
                         lyric = regexTime.Replace(line, "");
-                        foreach (Match match in matches)
+                        // foreach (Match match in matches)
+                        for (int j = 0; j < matches.Count; j++)
                         {
+                            var match = matches[j];
                             var timeStr = match.Groups[1].Value;
                             var time = stringTimeToFloat(timeStr);
                             if (time != -1)
@@ -103,8 +105,10 @@ namespace Sonic853.Lyric
                     matches = regexMeta.Matches(line);
                     if (matches.Count > 0)
                     {
-                        foreach (Match match in matches)
+                        // foreach (Match match in matches)
+                        for (int j = 0; j < matches.Count; j++)
                         {
+                            var match = matches[j];
                             var key = match.Groups[1].Value.ToLower();
                             var value = match.Groups[2].Value;
                             switch (key)

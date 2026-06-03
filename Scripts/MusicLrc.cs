@@ -67,7 +67,7 @@ namespace Sonic853.Lyric
         public int GetLyricIndex(float time)
         {
             var musicLrc = this;
-            if (musicLrc.lrcTime.Length == 0 && musicLrc.lrcFile != null) LyricReader.ReadLrcFile(ref musicLrc);
+            if (musicLrc.lrcTime.Length == 0 && (musicLrc.lrcFile != null || !string.IsNullOrEmpty(musicLrc.lrcString))) LyricReader.ReadLrcFile(ref musicLrc);
             if (musicLrc.lrcTime.Length == 0) return -1;
             time += musicLrc.offset;
             if (time < musicLrc.lrcTime[0]) return -1;
@@ -79,6 +79,8 @@ namespace Sonic853.Lyric
                     return i;
                 }
             }
+            // var index = Array.BinarySearch(musicLrc.lrcTime, time);
+            // if (index >= 0) return index;
             return -2;
         }
         /// <summary>
